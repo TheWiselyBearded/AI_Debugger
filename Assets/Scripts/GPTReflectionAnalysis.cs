@@ -13,6 +13,8 @@ using System.Reflection;
 using System.Text;
 using System.Linq;
 using OpenAI.Samples.Chat;
+using UnityEngine.UIElements;
+using System.Text.RegularExpressions;
 
 public class GPTReflectionAnalysis : MonoBehaviour
 {
@@ -34,6 +36,10 @@ public class GPTReflectionAnalysis : MonoBehaviour
             // Call the AnalyzeComponents method
             Debug.Log("running task");
             AnalyzeComponents();
+        }
+        if (Input.GetKeyDown(KeyCode.RightArrow))
+        {
+            SubmitChat();
         }
     }
 
@@ -87,6 +93,20 @@ public class GPTReflectionAnalysis : MonoBehaviour
         
     }
 
+    /// <summary>
+    /// invoke via button press
+    /// </summary>
+    public void SubmitChat()
+    {
+        if (ParseKeyword(chatBehaviour.inputField.text))
+        {
+            componentController.SearchFunctions(ParseFunctionName(chatBehaviour.inputField.text));
+        } else
+        {
+            chatBehaviour.SubmitChat(chatBehaviour.inputField.text);
+        }
+    }
+
     private string FormatDataForGPT(Dictionary<string, ClassInfo> classCollection)
     {
         StringBuilder formattedData = new StringBuilder();
@@ -120,4 +140,51 @@ public class GPTReflectionAnalysis : MonoBehaviour
         Debug.Log("GPT Analysis:\n" + gptResponse);
         chatBehaviour.UpdateChat(gptResponse);
     }
+
+
+    public void UpdateChat(string newText)
+    {
+        chatBehaviour.conversation.AppendMessage(new Message(Role.Assistant, newText));
+        //inputField.text = newText;
+        var assistantMessageContent = chatBehaviour.AddNewTextMessageContent(Role.Assistant);
+        assistantMessageContent.text = newText;
+        chatBehaviour.scrollView.verticalNormalizedPosition = 0f;
+
+    }
+
+    public bool ParseKeyword(string _tex)
+    {
+        Debug.Log($"input text {_tex}");
+        if (_tex.Contains("invoke function "))
+        {
+            string _func = ParseFunctionName(_tex);
+            if (_func != null || _func != "")
+            {
+                Debug.Log($"Function name {_func}");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public string ParseFunctionName(string input)
+    {
+        // Define a regular expression pattern to match "invoke function" followed by a function name in parentheses
+        string pattern = @"invoke\s+function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(";
+
+        // Use Regex to find a match
+        Match match = Regex.Match(input, pattern);
+        Debug.Log("attempt to regex match");
+        if (match.Success)
+        {
+            // Extract and return the function name from the matched group
+            return match.Groups[1].Value;
+        }
+        else
+        {
+            // If no match is found, return null or an empty string, depending on your preference
+            return null;
+        }
+    }
+
 }

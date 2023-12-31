@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Reflection;
 using System.Collections.Generic;
 using System;
+using System.Text.RegularExpressions;
 
 public class ReflectionRuntimeController : MonoBehaviour
 {
@@ -17,6 +18,11 @@ public class ReflectionRuntimeController : MonoBehaviour
         {
             ScanAndPopulateClasses();
         }
+        //if (Input.GetKeyDown(KeyCode.RightArrow))
+        //{
+        //    SetCustomObject(FindObjectOfType<ColorChangeScript>());
+        //    InvokePublicMethod("ColorChangeScript", "ChangeColor");
+        //}
     }
 
     void ScanAndPopulateClasses()
@@ -60,6 +66,58 @@ public class ReflectionRuntimeController : MonoBehaviour
             if (!classCollection.ContainsKey(type.Name))
             {
                 classCollection[type.Name] = classInfo;
+                Debug.Log($"Class name {type.Name}");
+            }
+        }
+    }
+
+    public void ParseKeyword(string _tex)
+    {
+        if (_tex.Contains("invoke function "))
+        {
+            string _func = ParseFunctionName(_tex);
+            if (_func != null || _func != "")
+            {
+                Debug.Log($"Function name {_func}");
+
+            }
+
+        }
+    }
+
+    public string ParseFunctionName(string input)
+    {
+        // Define a regular expression pattern to match "invoke function" followed by a function name in parentheses
+        string pattern = @"invoke\s+function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(";
+
+        // Use Regex to find a match
+        Match match = Regex.Match(input, pattern);
+        Debug.Log("attempt to regex match");
+        if (match.Success)
+        {
+            // Extract and return the function name from the matched group
+            return match.Groups[1].Value;
+        }
+        else
+        {
+            // If no match is found, return null or an empty string, depending on your preference
+            return null;
+        }
+    }
+
+    public void SearchFunctions(string func)
+    {
+        Debug.Log($"Searching functions {func}");
+        foreach (string _class in classCollection.Keys)
+        {
+            foreach (string _func in classCollection[_class].Methods.Keys)
+            {
+                if (_func == func)
+                {
+                    Debug.Log($"Found function {_func}");
+                    SetCustomObject(FindObjectOfType(Type.GetType(_class)));
+                    InvokePublicMethod(_class, _func);
+                }
             }
         }
     }
@@ -89,7 +147,7 @@ public class ReflectionRuntimeController : MonoBehaviour
 public class ClassInfo
 {
     public Dictionary<string, MethodInfo> Methods { get; set; }
-    public Dictionary<string, FieldInfo> Variables { get; set; }
+    public Dictionary<string, FieldInfo> Variables { get; set; }   
 
     public ClassInfo()
     {

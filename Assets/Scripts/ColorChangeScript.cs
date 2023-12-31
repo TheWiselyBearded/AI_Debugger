@@ -25,13 +25,18 @@ public class ColorChangeScript : MonoBehaviour
         if (timeSinceLastChange >= changeInterval)
         {
             // Generate a random color
-            Color randomColor = new Color(Random.value, Random.value, Random.value);
-
-            // Change the target object's material color to the random color
-            objectRenderer.material.color = randomColor;
+            ChangeColor();
 
             // Reset the time since last change
             timeSinceLastChange = 0.0f;
         }
+    }
+
+    public void ChangeColor()
+    {
+        Color randomColor = new Color(Random.value, Random.value, Random.value);
+
+        // Change the target object's material color to the random color
+        objectRenderer.material.color = randomColor;
     }
 }

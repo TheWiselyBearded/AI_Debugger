@@ -9,6 +9,7 @@ using OpenAI.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using TMPro;
@@ -23,7 +24,8 @@ using Utilities.WebRequestRest;
 namespace OpenAI.Samples.Chat
 {
     public class ChatBehaviour : MonoBehaviour
-    {
+    {        
+
         [SerializeField]
         private bool enableDebug;
 
@@ -34,13 +36,13 @@ namespace OpenAI.Samples.Chat
         private Button recordButton;
 
         [SerializeField]
-        private TMP_InputField inputField;
+        public TMP_InputField inputField;
 
         [SerializeField]
         private RectTransform contentArea;
 
         [SerializeField]
-        private ScrollRect scrollView;
+        public ScrollRect scrollView;
 
         [SerializeField]
         private AudioSource audioSource;
@@ -51,7 +53,7 @@ namespace OpenAI.Samples.Chat
 
         private OpenAIClient openAI;
 
-        private readonly Conversation conversation = new Conversation();
+        public Conversation conversation = new Conversation();
 
         private CancellationTokenSource lifetimeCancellationTokenSource;
 
@@ -124,7 +126,8 @@ namespace OpenAI.Samples.Chat
             lifetimeCancellationTokenSource = null;
         }
 
-        private void SubmitChat(string _) => SubmitChat();
+
+        public void SubmitChat(string _) => SubmitChat();
 
         private static bool isChatPending;
 
@@ -135,15 +138,17 @@ namespace OpenAI.Samples.Chat
             var assistantMessageContent = AddNewTextMessageContent(Role.Assistant);
             assistantMessageContent.text = newText;
             scrollView.verticalNormalizedPosition = 0f;
-            
-            
+                        
         }
+
+        
 
         private async void SubmitChat()
         {
             if (isChatPending || string.IsNullOrWhiteSpace(inputField.text)) { return; }
             isChatPending = true;
 
+                        
             inputField.ReleaseSelection();
             inputField.interactable = false;
             submitButton.interactable = false;
@@ -256,7 +261,7 @@ namespace OpenAI.Samples.Chat
             }
         }
 
-        private TextMeshProUGUI AddNewTextMessageContent(Role role)
+        public TextMeshProUGUI AddNewTextMessageContent(Role role)
         {
             var textObject = new GameObject($"{contentArea.childCount + 1}_{role}");
             textObject.transform.SetParent(contentArea, false);
