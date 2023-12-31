@@ -12,9 +12,11 @@ using System.Threading.Tasks;
 using System.Reflection;
 using System.Text;
 using System.Linq;
+using OpenAI.Samples.Chat;
 
 public class GPTReflectionAnalysis : MonoBehaviour
 {
+    public ChatBehaviour chatBehaviour;
     public ReflectionRuntimeController componentController; // Reference to your component controller
     private OpenAIClient openAI; // OpenAI Client
 
@@ -116,5 +118,6 @@ public class GPTReflectionAnalysis : MonoBehaviour
         // ...
 
         Debug.Log("GPT Analysis:\n" + gptResponse);
+        chatBehaviour.UpdateChat(gptResponse);
     }
 }

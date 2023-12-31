@@ -47,7 +47,7 @@ namespace OpenAI.Samples.Chat
 
         [SerializeField]
         [TextArea(3, 10)]
-        private string systemPrompt = "You are a helpful assistant.\n- If an image is requested then use \"![Image](output.jpg)\" to display it.";
+        private string systemPrompt = "You are a helpful AI debugging assistant that helps me interface and understand my code with the Reflection library.\n- If an image is requested then use \"![Image](output.jpg)\" to display it.";
 
         private OpenAIClient openAI;
 
@@ -127,6 +127,17 @@ namespace OpenAI.Samples.Chat
         private void SubmitChat(string _) => SubmitChat();
 
         private static bool isChatPending;
+
+        public void UpdateChat(string newText)
+        {
+            conversation.AppendMessage(new Message(Role.Assistant, newText));
+            //inputField.text = newText;
+            var assistantMessageContent = AddNewTextMessageContent(Role.Assistant);
+            assistantMessageContent.text = newText;
+            scrollView.verticalNormalizedPosition = 0f;
+            
+            
+        }
 
         private async void SubmitChat()
         {

@@ -1,13 +1,14 @@
 using UnityEngine;
 using System.Reflection;
 using System.Collections.Generic;
+using System;
 
 public class ReflectionRuntimeController : MonoBehaviour
 {
     public float detectionRadius = 5f; // Radius for proximity detection
     public LayerMask detectionLayer; // Layer mask to filter which objects to detect
     [SerializeField] public Dictionary<string, ClassInfo> classCollection = new Dictionary<string, ClassInfo>();
-  
+    [SerializeField] public UnityEngine.Object customObject;
 
     void Update()
     {
@@ -62,6 +63,25 @@ public class ReflectionRuntimeController : MonoBehaviour
             }
         }
     }
+
+    // TODO: Make it where ChatGPT can return responses informing the runtime as to what methods to invoke if
+    // user asks what methods to call for invoking a chain of events
+    protected ParameterInfo[] GetParameterTypesOfPublicMethod(string className, string methodName)
+    {
+        return classCollection[className].Methods[methodName].GetParameters();
+    }
+
+    public void InvokePublicMethod(string className, string methodName)
+    {
+        // for now, only invoke if method contains no parameters
+        if (GetParameterTypesOfPublicMethod(className, methodName).Length == 0)
+        {
+            classCollection[className].Methods[methodName].Invoke(customObject, new object[] { });
+        }
+    }
+
+    public void SetCustomObject(UnityEngine.Object obj) => customObject = obj;
+
 }
 
 // Custom class to hold method and variable info
