@@ -55,21 +55,23 @@ public class ReflectionRuntimeController : MonoBehaviour
                 classInfo.Methods[method.Name] = method;
             }
 
-            // Populate variables
             //foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
                 classInfo.Variables[field.Name] = field;
+                // Retrieve and store the current value of the variable
+                object value = field.GetValue(monoBehaviour);
+                classInfo.VariableValues[field.Name] = value;
             }
 
             // Add to class collection
             if (!classCollection.ContainsKey(type.Name))
             {
                 classCollection[type.Name] = classInfo;
-                Debug.Log($"Class name {type.Name}");
             }
         }
     }
+
 
     public void ParseKeyword(string _tex)
     {
@@ -142,16 +144,17 @@ public class ReflectionRuntimeController : MonoBehaviour
 
 }
 
-// Custom class to hold method and variable info
 [System.Serializable]
 public class ClassInfo
 {
     public Dictionary<string, MethodInfo> Methods { get; set; }
-    public Dictionary<string, FieldInfo> Variables { get; set; }   
+    public Dictionary<string, FieldInfo> Variables { get; set; }
+    public Dictionary<string, object> VariableValues { get; set; } // Store runtime values
 
     public ClassInfo()
     {
         Methods = new Dictionary<string, MethodInfo>();
         Variables = new Dictionary<string, FieldInfo>();
+        VariableValues = new Dictionary<string, object>();
     }
 }

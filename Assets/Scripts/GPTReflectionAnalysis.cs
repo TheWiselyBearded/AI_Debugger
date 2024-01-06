@@ -15,6 +15,8 @@ using System.Linq;
 using OpenAI.Samples.Chat;
 using UnityEngine.UIElements;
 using System.Text.RegularExpressions;
+using OpenAI.Threads;
+using UnityEditor.VersionControl;
 
 public class GPTReflectionAnalysis : MonoBehaviour
 {
@@ -37,10 +39,6 @@ public class GPTReflectionAnalysis : MonoBehaviour
             Debug.Log("running task");
             AnalyzeComponents();
         }
-        if (Input.GetKeyDown(KeyCode.RightArrow))
-        {
-            SubmitChat();
-        }
     }
 
     private async void AnalyzeComponents()
@@ -56,9 +54,9 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
         Debug.Log(combinedMessage);
         // Create a message list for the chat request
-        var messages = new List<Message>
+        var messages = new List<OpenAI.Chat.Message>
         {
-            new Message(Role.System, combinedMessage),
+            new OpenAI.Chat.Message(Role.System, combinedMessage),
         };
 
         try
@@ -81,17 +79,8 @@ public class GPTReflectionAnalysis : MonoBehaviour
             //isChatPending = false;
         }
 
-        // Send this data to GPT and handle the response
-        /*var response = await openAI.ChatEndpoint.StreamCompletionAsync(chatRequest, partialResponse =>
-        {
-            Console.Write(partialResponse.FirstChoice.Delta.ToString());
-        });
-
-        var choice = response.FirstChoice;*/
-        //Debug.Log($"[{choice.Index}] {choice.Message.Role}: {choice.Message.Content} | Finish Reason: {choice.FinishReason}");
-
-        
     }
+
 
     /// <summary>
     /// invoke via button press
@@ -114,6 +103,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
         foreach (var classEntry in classCollection)
         {
             formattedData.AppendLine($"Class: {classEntry.Key}");
+
             formattedData.AppendLine("Methods:");
             foreach (var method in classEntry.Value.Methods)
             {
@@ -123,7 +113,9 @@ public class GPTReflectionAnalysis : MonoBehaviour
             formattedData.AppendLine("Variables:");
             foreach (var variable in classEntry.Value.Variables)
             {
-                formattedData.AppendLine($"- {variable.Key}: Type: {variable.Value.FieldType.Name}");
+                // Retrieve the runtime value of the variable
+                object value = classEntry.Value.VariableValues.TryGetValue(variable.Key, out object val) ? val : "Unavailable";
+                formattedData.AppendLine($"- {variable.Key}: Type: {variable.Value.FieldType.Name}, Value: {value}");
             }
 
             formattedData.AppendLine(); // Separator for readability
@@ -131,6 +123,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
         return formattedData.ToString();
     }
+
 
     private void ProcessGPTResponse(string gptResponse)
     {
@@ -144,7 +137,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     public void UpdateChat(string newText)
     {
-        chatBehaviour.conversation.AppendMessage(new Message(Role.Assistant, newText));
+        chatBehaviour.conversation.AppendMessage(new OpenAI.Chat.Message(Role.Assistant, newText));
         //inputField.text = newText;
         var assistantMessageContent = chatBehaviour.AddNewTextMessageContent(Role.Assistant);
         assistantMessageContent.text = newText;

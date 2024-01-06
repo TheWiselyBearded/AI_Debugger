@@ -1240,7 +1240,6 @@ GameObject:
   - component: {fileID: 963194228}
   - component: {fileID: 963194227}
   - component: {fileID: 963194226}
-  - component: {fileID: 963194229}
   - component: {fileID: 963194230}
   m_Layer: 0
   m_Name: Main Camera
@@ -1323,23 +1322,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &963194229
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 963194225}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d53a95e430507413ca9a46b42ca20f6b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  detectionRadius: 5
-  detectionLayer:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  customObject: {fileID: 0}
 --- !u!135 &963194230
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -1407,7 +1389,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1169848597}
   - component: {fileID: 1169848596}
-  - component: {fileID: 1169848595}
+  - component: {fileID: 1169848598}
   m_Layer: 0
   m_Name: EventSystem
   m_TagString: Untagged
@@ -1415,26 +1397,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1169848595
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1169848594}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4f231c4fb786f3946a6b90b886c48677, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_SendPointerHoverToParent: 1
-  m_HorizontalAxis: Horizontal
-  m_VerticalAxis: Vertical
-  m_SubmitButton: Submit
-  m_CancelButton: Cancel
-  m_InputActionsPerSecond: 10
-  m_RepeatDelay: 0.5
-  m_ForceModuleActive: 0
 --- !u!114 &1169848596
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1465,6 +1427,36 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1169848598
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1169848594}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01614664b831546d2ae94a42149d80ac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_SendPointerHoverToParent: 1
+  m_MoveRepeatDelay: 0.5
+  m_MoveRepeatRate: 0.1
+  m_XRTrackingOrigin: {fileID: 0}
+  m_ActionsAsset: {fileID: -944628639613478452, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_PointAction: {fileID: -1654692200621890270, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_MoveAction: {fileID: -8784545083839296357, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_SubmitAction: {fileID: 392368643174621059, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_CancelAction: {fileID: 7727032971491509709, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_LeftClickAction: {fileID: 3001919216989983466, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_MiddleClickAction: {fileID: -2185481485913320682, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_RightClickAction: {fileID: -4090225696740746782, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_ScrollWheelAction: {fileID: 6240969308177333660, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_TrackedDevicePositionAction: {fileID: 6564999863303420839, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_TrackedDeviceOrientationAction: {fileID: 7970375526676320489, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
+  m_DeselectOnBackgroundClick: 1
+  m_PointerBehavior: 0
+  m_CursorLockBehavior: 0
 --- !u!1 &1175145753
 GameObject:
   m_ObjectHideFlags: 0
@@ -1675,6 +1667,7 @@ GameObject:
   - component: {fileID: 1392328596}
   - component: {fileID: 1392328595}
   - component: {fileID: 1392328600}
+  - component: {fileID: 1392328601}
   m_Layer: 0
   m_Name: GPT
   m_TagString: Untagged
@@ -1694,8 +1687,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7767c18b612d2415ea119a683774af01, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  chatBehaviour: {fileID: 1413235920}
-  componentController: {fileID: 963194229}
+  chatBehaviour: {fileID: 1392328600}
+  componentController: {fileID: 1392328601}
 --- !u!65 &1392328596
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1791,11 +1784,37 @@ MonoBehaviour:
   m_GameObject: {fileID: 1392328594}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 96012b7c0f3eb4a6fa8805cdc30fcf85, type: 3}
+  m_Script: {fileID: 11500000, guid: a891710bf1466924297c3b3b6f1b6e51, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetObject: {fileID: 1413235914}
-  changeInterval: 10
+  enableDebug: 1
+  submitButton: {fileID: 909308889}
+  recordButton: {fileID: 1700876597}
+  inputField: {fileID: 643272499}
+  contentArea: {fileID: 1427018838}
+  scrollView: {fileID: 1232174056}
+  audioSource: {fileID: 834574747}
+  systemPrompt: 'You are a helpful assistant.
+
+    - If an image is requested then
+    use "![Image](output.jpg)" to display it.'
+--- !u!114 &1392328601
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1392328594}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d53a95e430507413ca9a46b42ca20f6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  detectionRadius: 5
+  detectionLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  customObject: {fileID: 0}
 --- !u!1 &1413235914
 GameObject:
   m_ObjectHideFlags: 0
@@ -1811,7 +1830,7 @@ GameObject:
   - component: {fileID: 1413235915}
   - component: {fileID: 1413235920}
   m_Layer: 0
-  m_Name: dummy
+  m_Name: TemporaryObject
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1927,20 +1946,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1413235914}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a891710bf1466924297c3b3b6f1b6e51, type: 3}
+  m_Script: {fileID: 11500000, guid: 96012b7c0f3eb4a6fa8805cdc30fcf85, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enableDebug: 1
-  submitButton: {fileID: 909308889}
-  recordButton: {fileID: 1700876597}
-  inputField: {fileID: 643272499}
-  contentArea: {fileID: 1427018838}
-  scrollView: {fileID: 1232174056}
-  audioSource: {fileID: 834574747}
-  systemPrompt: 'You are a helpful assistant.
-
-    - If an image is requested then
-    use "![Image](output.jpg)" to display it.'
+  targetObject: {fileID: 1413235914}
+  changeInterval: 10
 --- !u!1 &1427018837
 GameObject:
   m_ObjectHideFlags: 0
