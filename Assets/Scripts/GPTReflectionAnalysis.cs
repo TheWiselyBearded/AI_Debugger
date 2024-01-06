@@ -15,6 +15,9 @@ using System.Linq;
 using OpenAI.Samples.Chat;
 using UnityEngine.UIElements;
 using System.Text.RegularExpressions;
+using OpenAI.Threads;
+using UnityEditor.VersionControl;
+using Utilities.WebRequestRest;
 
 public class GPTReflectionAnalysis : MonoBehaviour
 {
@@ -37,10 +40,6 @@ public class GPTReflectionAnalysis : MonoBehaviour
             Debug.Log("running task");
             AnalyzeComponents();
         }
-        if (Input.GetKeyDown(KeyCode.RightArrow))
-        {
-            SubmitChat();
-        }
     }
 
     private async void AnalyzeComponents()
@@ -56,9 +55,9 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
         Debug.Log(combinedMessage);
         // Create a message list for the chat request
-        var messages = new List<Message>
+        var messages = new List<OpenAI.Chat.Message>
         {
-            new Message(Role.System, combinedMessage),
+            new OpenAI.Chat.Message(Role.System, combinedMessage),
         };
 
         try
@@ -81,17 +80,8 @@ public class GPTReflectionAnalysis : MonoBehaviour
             //isChatPending = false;
         }
 
-        // Send this data to GPT and handle the response
-        /*var response = await openAI.ChatEndpoint.StreamCompletionAsync(chatRequest, partialResponse =>
-        {
-            Console.Write(partialResponse.FirstChoice.Delta.ToString());
-        });
-
-        var choice = response.FirstChoice;*/
-        //Debug.Log($"[{choice.Index}] {choice.Message.Role}: {choice.Message.Content} | Finish Reason: {choice.FinishReason}");
-
-        
     }
+
 
     /// <summary>
     /// invoke via button press
@@ -100,7 +90,8 @@ public class GPTReflectionAnalysis : MonoBehaviour
     {
         if (ParseKeyword(chatBehaviour.inputField.text))
         {
-            componentController.SearchFunctions(ParseFunctionName(chatBehaviour.inputField.text));
+            //componentController.SearchFunctions(ParseFunctionName(chatBehaviour.inputField.text));
+            Debug.Log($"Keyword found");
         } else
         {
             chatBehaviour.SubmitChat(chatBehaviour.inputField.text);
@@ -114,6 +105,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
         foreach (var classEntry in classCollection)
         {
             formattedData.AppendLine($"Class: {classEntry.Key}");
+
             formattedData.AppendLine("Methods:");
             foreach (var method in classEntry.Value.Methods)
             {
@@ -123,7 +115,9 @@ public class GPTReflectionAnalysis : MonoBehaviour
             formattedData.AppendLine("Variables:");
             foreach (var variable in classEntry.Value.Variables)
             {
-                formattedData.AppendLine($"- {variable.Key}: Type: {variable.Value.FieldType.Name}");
+                // Retrieve the runtime value of the variable
+                object value = classEntry.Value.VariableValues.TryGetValue(variable.Key, out object val) ? val : "Unavailable";
+                formattedData.AppendLine($"- {variable.Key}: Type: {variable.Value.FieldType.Name}, Value: {value}");
             }
 
             formattedData.AppendLine(); // Separator for readability
@@ -131,6 +125,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
         return formattedData.ToString();
     }
+
 
     private void ProcessGPTResponse(string gptResponse)
     {
@@ -144,7 +139,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     public void UpdateChat(string newText)
     {
-        chatBehaviour.conversation.AppendMessage(new Message(Role.Assistant, newText));
+        chatBehaviour.conversation.AppendMessage(new OpenAI.Chat.Message(Role.Assistant, newText));
         //inputField.text = newText;
         var assistantMessageContent = chatBehaviour.AddNewTextMessageContent(Role.Assistant);
         assistantMessageContent.text = newText;
@@ -152,20 +147,50 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     }
 
-    public bool ParseKeyword(string _tex)
+    /// <summary>
+    /// Anytime submitchat is invoked, we first search for keywords
+    /// </summary>
+    /// <param name="_tex"></param>
+    /// <returns></returns>
+    public bool ParseKeyword(string _text)
     {
-        Debug.Log($"input text {_tex}");
-        if (_tex.Contains("invoke function "))
+        Debug.Log($"Input text {_text}");
+        if (_text.Contains("invoke function "))
         {
-            string _func = ParseFunctionName(_tex);
-            if (_func != null || _func != "")
+            string _func = ParseFunctionName(_text);
+            if (!string.IsNullOrEmpty(_func))
             {
                 Debug.Log($"Function name {_func}");
+                componentController.SearchFunctions(_func);
+                return true;
+            }
+        }
+        else if (_text.Contains("view variables of "))
+        {
+            string className = ParseClassName(_text, "view variables of ");
+            if (!string.IsNullOrEmpty(className))
+            {
+                Debug.Log($"Viewing variables of class {className}");
+                //componentController.PrintAllVariableValues(className);
+                string localQueryResponse = componentController.GetAllVariableValuesAsString(className);
+                UpdateChat(localQueryResponse);
+                //chatBehaviour.GenerateSpeech(localQueryResponse);
+                return true;
+            }
+        }
+        else if (_text.Contains("view variable "))
+        {
+            string variableName = ParseVariableName(_text, "view variable ");
+            if (!string.IsNullOrEmpty(variableName))
+            {
+                Debug.Log($"Viewing variable {variableName}");
+                componentController.PrintVariableValueInAllClasses(variableName);
                 return true;
             }
         }
         return false;
     }
+
 
     public string ParseFunctionName(string input)
     {
@@ -186,5 +211,22 @@ public class GPTReflectionAnalysis : MonoBehaviour
             return null;
         }
     }
+
+    public string ParseClassName(string input, string patternStart)
+    {
+        string pattern = patternStart + @"([A-Za-z_][A-Za-z0-9_]*)";
+        Match match = Regex.Match(input, pattern);
+        if (match.Success)
+        {
+            return match.Groups[1].Value;
+        }
+        return null;
+    }
+
+    public string ParseVariableName(string input, string patternStart)
+    {
+        return ParseClassName(input, patternStart); // Reusing the same logic as class name parsing
+    }
+
 
 }
