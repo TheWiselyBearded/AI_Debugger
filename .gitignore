@@ -66,3 +66,5 @@ crashlytics-build.properties
 # Exclude ElevenLabsConfiguration.asset and OpenAIConfiguration.asset
 **/ElevenLabsConfiguration.asset
 **/OpenAIConfiguration.asset
+
+Assets/Resources/Recordings/*
