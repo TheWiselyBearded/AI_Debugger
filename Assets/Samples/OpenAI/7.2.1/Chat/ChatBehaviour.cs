@@ -115,7 +115,7 @@ namespace OpenAI.Samples.Chat
             };
             conversation.AppendMessage(new Message(Role.System, systemPrompt));
             inputField.onSubmit.AddListener(SubmitChat);
-            submitButton.onClick.AddListener(SubmitChat);
+            //submitButton.onClick.AddListener(SubmitChat);
             recordButton.onClick.AddListener(ToggleRecording);
         }
 
@@ -248,7 +248,7 @@ namespace OpenAI.Samples.Chat
             }
         }
 
-        private async void GenerateSpeech(string text)
+        public async void GenerateSpeech(string text)
         {
             text = text.Replace("![Image](output.jpg)", string.Empty);
             var request = new SpeechRequest(text, Model.TTS_1);

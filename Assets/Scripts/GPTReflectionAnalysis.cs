@@ -17,6 +17,7 @@ using UnityEngine.UIElements;
 using System.Text.RegularExpressions;
 using OpenAI.Threads;
 using UnityEditor.VersionControl;
+using Utilities.WebRequestRest;
 
 public class GPTReflectionAnalysis : MonoBehaviour
 {
@@ -89,7 +90,8 @@ public class GPTReflectionAnalysis : MonoBehaviour
     {
         if (ParseKeyword(chatBehaviour.inputField.text))
         {
-            componentController.SearchFunctions(ParseFunctionName(chatBehaviour.inputField.text));
+            //componentController.SearchFunctions(ParseFunctionName(chatBehaviour.inputField.text));
+            Debug.Log($"Keyword found");
         } else
         {
             chatBehaviour.SubmitChat(chatBehaviour.inputField.text);
@@ -145,20 +147,50 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     }
 
-    public bool ParseKeyword(string _tex)
+    /// <summary>
+    /// Anytime submitchat is invoked, we first search for keywords
+    /// </summary>
+    /// <param name="_tex"></param>
+    /// <returns></returns>
+    public bool ParseKeyword(string _text)
     {
-        Debug.Log($"input text {_tex}");
-        if (_tex.Contains("invoke function "))
+        Debug.Log($"Input text {_text}");
+        if (_text.Contains("invoke function "))
         {
-            string _func = ParseFunctionName(_tex);
-            if (_func != null || _func != "")
+            string _func = ParseFunctionName(_text);
+            if (!string.IsNullOrEmpty(_func))
             {
                 Debug.Log($"Function name {_func}");
+                componentController.SearchFunctions(_func);
+                return true;
+            }
+        }
+        else if (_text.Contains("view variables of "))
+        {
+            string className = ParseClassName(_text, "view variables of ");
+            if (!string.IsNullOrEmpty(className))
+            {
+                Debug.Log($"Viewing variables of class {className}");
+                //componentController.PrintAllVariableValues(className);
+                string localQueryResponse = componentController.GetAllVariableValuesAsString(className);
+                UpdateChat(localQueryResponse);
+                //chatBehaviour.GenerateSpeech(localQueryResponse);
+                return true;
+            }
+        }
+        else if (_text.Contains("view variable "))
+        {
+            string variableName = ParseVariableName(_text, "view variable ");
+            if (!string.IsNullOrEmpty(variableName))
+            {
+                Debug.Log($"Viewing variable {variableName}");
+                componentController.PrintVariableValueInAllClasses(variableName);
                 return true;
             }
         }
         return false;
     }
+
 
     public string ParseFunctionName(string input)
     {
@@ -179,5 +211,22 @@ public class GPTReflectionAnalysis : MonoBehaviour
             return null;
         }
     }
+
+    public string ParseClassName(string input, string patternStart)
+    {
+        string pattern = patternStart + @"([A-Za-z_][A-Za-z0-9_]*)";
+        Match match = Regex.Match(input, pattern);
+        if (match.Success)
+        {
+            return match.Groups[1].Value;
+        }
+        return null;
+    }
+
+    public string ParseVariableName(string input, string patternStart)
+    {
+        return ParseClassName(input, patternStart); // Reusing the same logic as class name parsing
+    }
+
 
 }

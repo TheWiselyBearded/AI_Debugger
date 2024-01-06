@@ -3,6 +3,8 @@ using System.Reflection;
 using System.Collections.Generic;
 using System;
 using System.Text.RegularExpressions;
+using System.Text;
+using System.Collections;
 
 public class ReflectionRuntimeController : MonoBehaviour
 {
@@ -139,6 +141,84 @@ public class ReflectionRuntimeController : MonoBehaviour
             classCollection[className].Methods[methodName].Invoke(customObject, new object[] { });
         }
     }
+
+    public void PrintAllVariableValues(string className)
+    {
+        if (classCollection.TryGetValue(className, out ClassInfo classInfo))
+        {
+            Debug.Log($"All variables in class {className}:");
+            foreach (var variable in classInfo.Variables)
+            {
+                object value = classInfo.VariableValues.TryGetValue(variable.Key, out object val) ? val : "Unavailable";
+                Debug.Log($"- {variable.Key}: {value}");
+            }
+        }
+        else
+        {
+            Debug.Log($"Class {className} not found.");
+        }
+    }
+
+
+    public string GetAllVariableValuesAsString(string className)
+    {
+        if (classCollection.TryGetValue(className, out ClassInfo classInfo))
+        {
+            StringBuilder variableValues = new StringBuilder();
+            variableValues.AppendLine($"All variables in class {className}:");
+
+            foreach (var variable in classInfo.Variables)
+            {
+                object variableValue = classInfo.VariableValues.TryGetValue(variable.Key, out object val) ? val : "Unavailable";
+
+                // Check if the variable is a dictionary
+                if (variableValue is IDictionary dictionary)
+                {
+                    variableValues.AppendLine($"- {variable.Key} (Dictionary):");
+                    foreach (DictionaryEntry entry in dictionary)
+                    {
+                        variableValues.AppendLine($"    - Key: {entry.Key}, Value: {entry.Value}");
+                    }
+                }
+                else
+                {
+                    variableValues.AppendLine($"- {variable.Key}: {variableValue}");
+                }
+            }
+
+            return variableValues.ToString();
+        }
+        else
+        {
+            return $"Class {className} not found.";
+        }
+    }
+
+
+
+    public void PrintVariableValueInAllClasses(string variableName)
+    {
+        bool variableFound = false;
+
+        foreach (var classEntry in classCollection)
+        {
+            string className = classEntry.Key;
+            ClassInfo classInfo = classEntry.Value;
+
+            if (classInfo.Variables.TryGetValue(variableName, out FieldInfo fieldInfo))
+            {
+                object value = classInfo.VariableValues.TryGetValue(variableName, out object val) ? val : "Unavailable";
+                Debug.Log($"Variable {variableName} found in class {className}: {value}");
+                variableFound = true;
+            }
+        }
+
+        if (!variableFound)
+        {
+            Debug.Log($"Variable {variableName} not found in any class.");
+        }
+    }
+
 
     public void SetCustomObject(UnityEngine.Object obj) => customObject = obj;
 
