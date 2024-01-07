@@ -1824,7 +1824,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   detectionRadius: 5
   detectionLayer:
-    serializedVersion: 2
     m_Bits: 4294967295
   customObject: {fileID: 0}
 --- !u!1 &1413235914
@@ -1963,6 +1962,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   targetObject: {fileID: 1413235914}
   changeInterval: 10
+  timeSinceLastChange: 0
+  objectRenderer: {fileID: 0}
 --- !u!1 &1427018837
 GameObject:
   m_ObjectHideFlags: 0

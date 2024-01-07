@@ -14,7 +14,6 @@
 /Assets/StreamingAssets/*.json
 /Assets/StreamingAssets/*.json.meta
 
-
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta
 
@@ -67,4 +66,5 @@ crashlytics-build.properties
 **/ElevenLabsConfiguration.asset
 **/OpenAIConfiguration.asset
 
-Assets/Resources/Recordings/*
+# Include files within the Plugins folder
+!/Assets/Plugins/
