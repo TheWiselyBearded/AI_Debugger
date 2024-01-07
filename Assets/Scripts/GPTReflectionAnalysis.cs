@@ -24,6 +24,13 @@ public class GPTReflectionAnalysis : MonoBehaviour
     public ChatBehaviour chatBehaviour;
     public ReflectionRuntimeController componentController; // Reference to your component controller
     private OpenAIClient openAI; // OpenAI Client
+    public string AssistantID;
+
+    #region GPTAssistantIDs
+    private string threadID;
+    private string messageID;
+    private string runID;
+    #endregion
 
     private void Start()
     {
@@ -40,6 +47,8 @@ public class GPTReflectionAnalysis : MonoBehaviour
             Debug.Log("running task");
             AnalyzeComponents();
         }
+        if (Input.GetKeyDown(KeyCode.LeftArrow)) RetrieveAssistant();
+        if (Input.GetKeyDown(KeyCode.RightArrow)) RetrieveAssistantResponse();
     }
 
     private async void AnalyzeComponents()
@@ -48,7 +57,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
         string dataForGPT = FormatDataForGPT(componentController.classCollection);
 
         // Pre-prompt for the GPT query
-        string gptPrompt = "Given the following snapshot of the runtime environment with classes, methods, and variables, can you analyze the relationships among these components and their runtime values?";
+        string gptPrompt = "Given the following snapshot of the runtime environment with classes, methods, and variables, can you analyze the relationships among these components and their runtime values? Please leverage your knowledge of the code base as well, specifically looking at the classes specified in this message with respect to your documentation.";
 
         // Combine the prompt with the data
         string combinedMessage = $"{gptPrompt}\n{dataForGPT}";
@@ -62,13 +71,14 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
         try
         {
-            var chatRequest = new ChatRequest(messages, Model.GPT3_5_Turbo);
+            /*var chatRequest = new ChatRequest(messages, Model.GPT3_5_Turbo);
             var result = await openAI.ChatEndpoint.GetCompletionAsync(chatRequest);
-            var response = result.ToString();
+            var response = result.ToString();*/
+            RetrieveAssistant(combinedMessage);
 
             //Debug.Log(response);
             
-            ProcessGPTResponse(response);
+            //ProcessGPTResponse(response);
         }
         catch (Exception e)
         {
@@ -80,6 +90,42 @@ public class GPTReflectionAnalysis : MonoBehaviour
             //isChatPending = false;
         }
 
+    }
+
+    
+    private async void RetrieveAssistant(string txt = "What exactly is all the code doing around me and what relationships do the scripts have with one another?")
+    {
+        var assistant = await openAI.AssistantsEndpoint.RetrieveAssistantAsync(AssistantID);
+        Debug.Log($"{assistant} -> {assistant.CreatedAt}");
+
+        var thread = await openAI.ThreadsEndpoint.CreateThreadAsync();
+        var request = new CreateMessageRequest(txt);
+        var message = await openAI.ThreadsEndpoint.CreateMessageAsync(thread.Id, request);
+        threadID = thread.Id;
+        // OR use extension method for convenience!
+        //var message = await thread.CreateMessageAsync("Hello World!");
+        messageID = message.Id;
+        Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");
+
+        var run = await thread.CreateRunAsync(assistant);
+        Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
+        runID = run.Id;
+    }
+
+    private async void RetrieveAssistantResponse()
+    {
+        //var message = await openAI.ThreadsEndpoint.RetrieveMessageAsync(threadID, messageID);        
+        //Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");
+        var run = await openAI.ThreadsEndpoint.RetrieveRunAsync(threadID, runID);
+        Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
+
+        var messageList = await openAI.ThreadsEndpoint.ListMessagesAsync(threadID);
+
+        foreach (var message in messageList.Items)
+        {
+            Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");
+            UpdateChat($"{message.Role}: {message.PrintContent()}");
+        }
     }
 
 
@@ -94,7 +140,8 @@ public class GPTReflectionAnalysis : MonoBehaviour
             Debug.Log($"Keyword found");
         } else
         {
-            chatBehaviour.SubmitChat(chatBehaviour.inputField.text);
+            //chatBehaviour.SubmitChat(chatBehaviour.inputField.text);
+            RetrieveAssistant(chatBehaviour.inputField.text);
         }
     }
 
@@ -149,6 +196,10 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     /// <summary>
     /// Anytime submitchat is invoked, we first search for keywords
+    /// Example:
+    /// invoke function ScanAndPopulateClasses()
+    /// view variables of ChatBehavior
+    /// view variables of ColorChangeScript
     /// </summary>
     /// <param name="_tex"></param>
     /// <returns></returns>

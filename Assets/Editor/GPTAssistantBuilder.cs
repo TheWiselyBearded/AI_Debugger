@@ -133,7 +133,6 @@ public class GPTAssistantBuilder : EditorWindow
         if (!string.IsNullOrEmpty(assistantId) && GUILayout.Button("Delete Assistant"))
         {
             DeleteAssistant();
-            assistantId = "";
         }
     }
 
@@ -218,7 +217,9 @@ public class GPTAssistantBuilder : EditorWindow
     public async void CreateAssistant()
     {
         var api = new OpenAIClient();
-        var request = new CreateAssistantRequest("gpt-4-1106-preview");
+        var retrievalTools = new OpenAI.Tool[1];
+        retrievalTools[0] = OpenAI.Tool.Retrieval;
+        var request = new CreateAssistantRequest(model: "gpt-4-1106-preview", name: "test", tools: retrievalTools);
         var assistant = await api.AssistantsEndpoint.CreateAssistantAsync(request);
         Debug.Log($"Assistant ID {assistant.Id}");
 
@@ -253,8 +254,13 @@ public class GPTAssistantBuilder : EditorWindow
     public async void DeleteAssistant()
     {
         var api = new OpenAIClient();
-        var isDeleted = await api.AssistantsEndpoint.DeleteAssistantAsync(assistantId);
-        
+        if (assistantId != string.Empty)
+        {
+            var isDeleted = await api.AssistantsEndpoint.DeleteAssistantAsync(assistantId);
+            Debug.Log($"Deleted assistant {assistantId}");
+        }
+        assistantId = string.Empty;
+        EditorPrefs.SetString("AssistantId", "");
     }
 
     public async void ListAssistantFiles()
