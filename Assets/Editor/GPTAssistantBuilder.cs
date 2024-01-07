@@ -2,6 +2,11 @@ using UnityEngine;
 using UnityEditor;
 using System;
 using System.Linq;
+using OpenAI;
+using OpenAI.Assistants;
+using System.Threading.Tasks;
+using OpenAI.Files;
+using OpenAI.Threads;
 
 [Serializable]
 public class FileReference
@@ -17,6 +22,9 @@ public class GPTAssistantBuilder : EditorWindow
     private float feedbackTimer = 0f;
     private float feedbackDuration = 1.0f;
 
+    private string assistantId;
+    private string fileID;
+
     [MenuItem("Tools/GPT Assistant Builder")]
     public static void ShowWindow()
     {
@@ -26,6 +34,15 @@ public class GPTAssistantBuilder : EditorWindow
     private void OnEnable()
     {
         LoadFilesFromEditorPrefs();
+        LoadAssistantId();
+        if (!string.IsNullOrEmpty(assistantId))
+        {
+            DisplayAssistantDetails(assistantId);
+        }
+        else
+        {
+            ListAssistants();
+        }
     }
 
     private void OnDisable()
@@ -43,7 +60,7 @@ public class GPTAssistantBuilder : EditorWindow
 
         Rect dropArea = GUILayoutUtility.GetRect(0f, 50f, GUILayout.ExpandWidth(true));
         GUI.Box(dropArea, "Drag and drop files here");
-        Event currentEvent = Event.current;
+        UnityEngine.Event currentEvent = UnityEngine.Event.current;
 
         if (currentEvent.type == EventType.DragUpdated)
         {
@@ -94,6 +111,29 @@ public class GPTAssistantBuilder : EditorWindow
         if (GUILayout.Button("Save Files to EditorPrefs"))
         {
             SaveFilesToEditorPrefs();
+        }
+
+        // Display assistant details
+        if (!string.IsNullOrEmpty(assistantId))
+        {
+            GUILayout.Label($"Assistant ID: {assistantId}");
+            // Display other assistant details
+        }
+
+        if (GUILayout.Button("Create New Assistant"))
+        {
+            CreateAssistant();
+        }
+
+        if (GUILayout.Button("Attach Files to Assistant"))
+        {
+            AttachFilesToAssistant();
+        }
+
+        if (!string.IsNullOrEmpty(assistantId) && GUILayout.Button("Delete Assistant"))
+        {
+            DeleteAssistant();
+            assistantId = "";
         }
     }
 
@@ -151,4 +191,106 @@ public class GPTAssistantBuilder : EditorWindow
             files = loadedFiles;
         }
     }
+
+    // Method to save and load assistant ID
+    private void LoadAssistantId()
+    {
+        assistantId = EditorPrefs.GetString("AssistantId", "");
+    }
+
+    private void DisplayAssistantDetails(string assistantId)
+    {
+        // Fetch and display details like ID, name, date created, file names
+        // You'll need to call RetrieveAssistant and ListAssistantFiles
+    }
+
+    public async void ListAssistants()
+    {
+        var api = new OpenAIClient();
+        var assistantsList = await api.AssistantsEndpoint.ListAssistantsAsync();
+
+        foreach (var assistant in assistantsList.Items)
+        {
+            Debug.Log($"{assistant} -> {assistant.CreatedAt}, ID {assistant.Id}");
+        }
+    }
+
+    public async void CreateAssistant()
+    {
+        var api = new OpenAIClient();
+        var request = new CreateAssistantRequest("gpt-4-1106-preview");
+        var assistant = await api.AssistantsEndpoint.CreateAssistantAsync(request);
+        Debug.Log($"Assistant ID {assistant.Id}");
+
+        // Save the assistant ID
+        EditorPrefs.SetString("AssistantId", assistant.Id);
+        assistantId = assistant.Id;
+
+        await Task.Delay(2000);
+        /*
+        // Implement file upload and attachment logic
+        foreach (var fileRef in files)
+        {
+            //var fileUploadRequest = new FileUploadRequest(fileRef.assetPath, "assistant");
+            //var file = await api.FilesEndpoint.UploadFileAsync(fileUploadRequest);
+            //var assistantFile = await api.AssistantsEndpoint.AttachFileAsync(assistantId, file);
+            var assistantFile = await assistant.UploadFileAsync(fileRef.assetPath);
+            await Task.Delay(1000);
+        }*/
+        Debug.Log("Sent off api requests to create assistant");
+    }
+
+
+
+    public async Task<AssistantResponse> RetrieveAssistant()
+    {
+        var api = new OpenAIClient();
+        var assistant = await api.AssistantsEndpoint.RetrieveAssistantAsync(assistantId);
+        Debug.Log($"{assistant} -> {assistant.CreatedAt}, ID {assistant.Id}");
+        return assistant;
+    }
+
+    public async void DeleteAssistant()
+    {
+        var api = new OpenAIClient();
+        var isDeleted = await api.AssistantsEndpoint.DeleteAssistantAsync(assistantId);
+        
+    }
+
+    public async void ListAssistantFiles()
+    {
+        var api = new OpenAIClient();
+        var filesList = await api.AssistantsEndpoint.ListFilesAsync(assistantId);
+        
+        foreach (var file in filesList.Items)
+        {
+            Debug.Log($"{file.AssistantId}'s file -> {file.Id}");
+        }
+    }
+
+    public async void AttachFilesToAssistant()
+    {
+        /*var api = new OpenAIClient();
+
+        foreach (var fileRef in files)
+        {
+            string absoluteFilePath = System.IO.Path.GetFullPath(fileRef.assetPath);
+            Debug.Log($"Uploading file: {absoluteFilePath}");
+
+            var fileUploadRequest = new FileUploadRequest(absoluteFilePath, "assistant");
+            var file = await api.FilesEndpoint.UploadFileAsync(fileUploadRequest);
+            Debug.Log($"Uploaded file ID: {file.Id}");
+
+            var assistantFile = await api.AssistantsEndpoint.AttachFileAsync(assistantId, file);
+            Debug.Log($"Attached file {file.Id} to assistant {assistantId}");
+            
+            await Task.Delay(1000); // Delay for 1 second
+        }*/
+        var api = new OpenAIClient();
+        var fileData = await api.FilesEndpoint.UploadFileAsync(files[0].assetPath, "assistants");
+        var assistantFile = await api.AssistantsEndpoint.AttachFileAsync(assistantId, new FileResponse(fileData.Id, fileData.Object, fileData.Size, fileData.CreatedUnixTimeSeconds, fileData.FileName, fileData.Purpose, fileData.Status));
+        Debug.Log($"Attached file {fileData.Id} to assistant {assistantId}");
+    }
+
+
 }
