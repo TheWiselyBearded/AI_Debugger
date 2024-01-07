@@ -11,8 +11,7 @@
 /[Mm]emoryCaptures/
 
 # Ignore configuration files in streaming assets folder
-/Assets/StreamingAssets/*.json
-/Assets/StreamingAssets/*.json.meta
+/Assets/StreamingAssets/*
 
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta
