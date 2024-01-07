@@ -1701,7 +1701,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   chatBehaviour: {fileID: 1392328600}
   componentController: {fileID: 1392328601}
-  AssistantID: 'asst_9MVq1mNICxURy9Yd8bd6rfe2 '
+  AssistantID: asst_VoiPfdUxshtiYwJVlTzDfJTu
 --- !u!65 &1392328596
 BoxCollider:
   m_ObjectHideFlags: 0

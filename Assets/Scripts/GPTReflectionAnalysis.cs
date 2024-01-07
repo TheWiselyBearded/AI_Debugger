@@ -30,6 +30,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
     private string threadID;
     private string messageID;
     private string runID;
+    protected OpenAI.Threads.ThreadResponse GPTthread;
     #endregion
 
     private void Start()
@@ -57,7 +58,8 @@ public class GPTReflectionAnalysis : MonoBehaviour
         string dataForGPT = FormatDataForGPT(componentController.classCollection);
 
         // Pre-prompt for the GPT query
-        string gptPrompt = "Given the following snapshot of the runtime environment with classes, methods, and variables, can you analyze the relationships among these components and their runtime values? Please leverage your knowledge of the code base as well, specifically looking at the classes specified in this message with respect to your documentation.";
+        string gptPrompt = "Given the following snapshot of the runtime environment with classes, methods, and variables, can you analyze the relationships among these components and their runtime values? " +
+            "Please leverage your knowledge of the code base as well using the documentation that was given to you, specifically looking at the classes specified in this message with respect to your documentation.";
 
         // Combine the prompt with the data
         string combinedMessage = $"{gptPrompt}\n{dataForGPT}";
@@ -98,19 +100,47 @@ public class GPTReflectionAnalysis : MonoBehaviour
         var assistant = await openAI.AssistantsEndpoint.RetrieveAssistantAsync(AssistantID);
         Debug.Log($"{assistant} -> {assistant.CreatedAt}");
 
-        var thread = await openAI.ThreadsEndpoint.CreateThreadAsync();
+        if (threadID == null || threadID == string.Empty)
+        {
+            GPTthread = await openAI.ThreadsEndpoint.CreateThreadAsync();
+            threadID = GPTthread.Id;
+        }
         var request = new CreateMessageRequest(txt);
-        var message = await openAI.ThreadsEndpoint.CreateMessageAsync(thread.Id, request);
-        threadID = thread.Id;
+        var message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
         // OR use extension method for convenience!
         //var message = await thread.CreateMessageAsync("Hello World!");
         messageID = message.Id;
         Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");
 
-        var run = await thread.CreateRunAsync(assistant);
+        var run = await GPTthread.CreateRunAsync(assistant);
         Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
         runID = run.Id;
+
+        var messageList = await RetrieveAssistantResponseAsync();
+        foreach (var _message in messageList.Items)
+        {
+            Debug.Log($"{_message.Id}: {_message.Role}: {_message.PrintContent()}");
+            UpdateChat($"{_message.Role}: {_message.PrintContent()}");
+        }
     }
+
+
+    private async Task<ListResponse<MessageResponse>> RetrieveAssistantResponseAsync()
+    {
+        var run = await openAI.ThreadsEndpoint.RetrieveRunAsync(threadID, runID);
+        Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
+        RunStatus status = run.Status;
+        while (status != RunStatus.Completed)
+        {
+            run = await openAI.ThreadsEndpoint.RetrieveRunAsync(threadID, runID);
+            status = run.Status;
+            await System.Threading.Tasks.Task.Delay(1000);
+        }
+        var messageList = await openAI.ThreadsEndpoint.ListMessagesAsync(threadID);
+        
+        return messageList;
+    }
+
 
     private async void RetrieveAssistantResponse()
     {
@@ -118,7 +148,6 @@ public class GPTReflectionAnalysis : MonoBehaviour
         //Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");
         var run = await openAI.ThreadsEndpoint.RetrieveRunAsync(threadID, runID);
         Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
-
         var messageList = await openAI.ThreadsEndpoint.ListMessagesAsync(threadID);
 
         foreach (var message in messageList.Items)
