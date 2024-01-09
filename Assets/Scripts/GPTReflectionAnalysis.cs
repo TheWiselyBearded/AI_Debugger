@@ -105,6 +105,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
             GPTthread = await openAI.ThreadsEndpoint.CreateThreadAsync();
             threadID = GPTthread.Id;
         }
+        //txt += " Please provide responses in rich text format (rtf).";
         var request = new CreateMessageRequest(txt);
         var message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
         // OR use extension method for convenience!
@@ -128,11 +129,12 @@ public class GPTReflectionAnalysis : MonoBehaviour
     private async Task<ListResponse<MessageResponse>> RetrieveAssistantResponseAsync()
     {
         var run = await openAI.ThreadsEndpoint.RetrieveRunAsync(threadID, runID);
-        Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
+        //Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
         RunStatus status = run.Status;
         while (status != RunStatus.Completed)
         {
             run = await openAI.ThreadsEndpoint.RetrieveRunAsync(threadID, runID);
+            Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
             status = run.Status;
             await System.Threading.Tasks.Task.Delay(1000);
         }
