@@ -18,6 +18,7 @@ using System.Text.RegularExpressions;
 using OpenAI.Threads;
 using UnityEditor.VersionControl;
 using Utilities.WebRequestRest;
+using Unity.VisualScripting;
 
 public class GPTReflectionAnalysis : MonoBehaviour
 {
@@ -27,6 +28,8 @@ public class GPTReflectionAnalysis : MonoBehaviour
     public string AssistantID;
 
     public Dictionary<string, MessageResponse> gptDebugMessages;
+
+    public KeywordEvent[] keywordEvents;
 
     private static bool isChatPending;  // manage state of chat requests to prevent spamming
 
@@ -43,6 +46,20 @@ public class GPTReflectionAnalysis : MonoBehaviour
         openAI = new OpenAIClient();
         gptDebugMessages = new Dictionary<string, MessageResponse>();
     }
+
+
+    protected void Start()
+    {
+        chatWindow.inputField.onSubmit.AddListener(SubmitChat);
+    }
+
+    protected void OnDestroy()
+    {
+        gptDebugMessages = null;
+        chatWindow.inputField.onSubmit.RemoveAllListeners();
+    }
+
+    public void SubmitChat(string _) => SubmitChat();
 
 
     public void AnalyzeComponents()
@@ -171,7 +188,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
     /// </summary>
     public void SubmitChat()
     {
-        if (ParseKeyword(chatWindow.inputField.text))
+        if (ParseKeyword())
         {
             //componentController.SearchFunctions(ParseFunctionName(chatBehaviour.inputField.text));
             Debug.Log($"Keyword found");
@@ -212,16 +229,9 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
 
 
-    public void UpdateChat(string newText)
-    {
-        chatWindow.UpdateChat(newText);
-        //chatWindow.conversation.AppendMessage(new OpenAI.Chat.Message(Role.Assistant, newText));
-        //inputField.text = newText;
-        //var assistantMessageContent = chatWindow.AddNewTextMessageContent(Role.Assistant);
-        //assistantMessageContent.text = newText;
-        //chatWindow.scrollView.verticalNormalizedPosition = 0f;
+    public void UpdateChat(string newText) => chatWindow.UpdateChat(newText);
 
-    }
+
 
     /// <summary>
     /// Anytime submitchat is invoked, we first search for keywords
@@ -232,44 +242,78 @@ public class GPTReflectionAnalysis : MonoBehaviour
     /// </summary>
     /// <param name="_tex"></param>
     /// <returns></returns>
-    public bool ParseKeyword(string _text)
+
+    private bool ParseKeyword()
     {
-        Debug.Log($"Input text {_text}");
-        if (_text.Contains("invoke function "))
+        string input = chatWindow.inputField.text;
+        foreach (KeywordEvent k in keywordEvents)
         {
-            string _func = ParseFunctionName(_text);
-            if (!string.IsNullOrEmpty(_func))
+            if (input.Contains(k.Keyword, StringComparison.OrdinalIgnoreCase))
             {
-                Debug.Log($"Function name {_func}");
-                componentController.SearchFunctions(_func);
-                return true;
-            }
-        }
-        else if (_text.Contains("view variables of "))
-        {
-            string className = ParseClassName(_text, "view variables of ");
-            if (!string.IsNullOrEmpty(className))
-            {
-                Debug.Log($"Viewing variables of class {className}");
-                //componentController.PrintAllVariableValues(className);
-                string localQueryResponse = componentController.GetAllVariableValuesAsString(className);
-                UpdateChat(localQueryResponse);
-                //chatBehaviour.GenerateSpeech(localQueryResponse);
-                return true;
-            }
-        }
-        else if (_text.Contains("view variable "))
-        {
-            string variableName = ParseVariableName(_text, "view variable ");
-            if (!string.IsNullOrEmpty(variableName))
-            {
-                Debug.Log($"Viewing variable {variableName}");
-                componentController.PrintVariableValueInAllClasses(variableName);
+                Debug.Log($"Keyword {k.Keyword}");
+                k.keywordEvent.Invoke();
                 return true;
             }
         }
         return false;
     }
+
+
+    public void GetHelpText()
+    {
+        StringBuilder helpTextStrBuilder = new StringBuilder();
+        helpTextStrBuilder.AppendLine("## Available Commands\n");
+
+        foreach (KeywordEvent k in keywordEvents)
+        {
+            helpTextStrBuilder.AppendLine($"- **{k.Keyword}**: {k.Description}");
+        }
+
+        string helpText = helpTextStrBuilder.ToString();
+        UpdateChat(helpText);
+    }
+
+
+    public void InvokeFunction()
+    {
+        string _text = chatWindow.inputField.text;
+        string _func = ParseFunctionName(_text);
+        if (!string.IsNullOrEmpty(_func))
+        {
+            Debug.Log($"Function name {_func}");
+            componentController.SearchFunctions(_func);
+        }
+    }
+
+    public void ViewClassVariables()
+    {
+        string _text = chatWindow.inputField.text;
+        string className = ParseClassName(_text, "view variables of ");
+        if (!string.IsNullOrEmpty(className))
+        {
+            Debug.Log($"Viewing variables of class {className}");
+            //componentController.PrintAllVariableValues(className);
+            // update references
+            componentController.ScanAndPopulateClasses();
+            string localQueryResponse = componentController.GetAllVariableValuesAsString(className);
+            UpdateChat(localQueryResponse);            
+        }
+    }
+
+    public void ViewVariable()
+    {
+        string _text = chatWindow.inputField.text;
+        string variableName = ParseVariableName(_text, "view variable ");
+        if (!string.IsNullOrEmpty(variableName))
+        {
+            // update references
+            componentController.ScanAndPopulateClasses();
+            Debug.Log($"Viewing variable {variableName}");
+            componentController.PrintVariableValueInAllClasses(variableName);
+        }
+    }
+
+    
 
 
     public string ParseFunctionName(string input)
@@ -309,4 +353,13 @@ public class GPTReflectionAnalysis : MonoBehaviour
     }
 
 
+}
+
+
+[System.Serializable]
+public class KeywordEvent
+{
+    public string Keyword;
+    public string Description;
+    public UnityEngine.Events.UnityEvent keywordEvent;
 }

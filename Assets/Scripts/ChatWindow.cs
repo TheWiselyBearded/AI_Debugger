@@ -114,7 +114,7 @@ public class ChatWindow : MonoBehaviour
             EnableDebug = enableDebug
         };
         conversation.AppendMessage(new Message(Role.System, systemPrompt));
-        inputField.onSubmit.AddListener(SubmitChat);
+        //inputField.onSubmit.AddListener(SubmitChat);
         //submitButton.onClick.AddListener(SubmitChat);
         recordButton.onClick.AddListener(ToggleRecording);
     }

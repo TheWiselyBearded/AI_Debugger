@@ -172,7 +172,7 @@ public class ReflectionRuntimeController : MonoBehaviour
                     variableValues.AppendLine($"- {variable.Key}: {variableValue}");
                 }
             }
-
+            Debug.Log(variableValues.ToString());
             return variableValues.ToString();
         }
         else
