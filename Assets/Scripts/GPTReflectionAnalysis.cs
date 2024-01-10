@@ -21,7 +21,7 @@ using Utilities.WebRequestRest;
 
 public class GPTReflectionAnalysis : MonoBehaviour
 {
-    public ChatBehaviour chatBehaviour;
+    public ChatWindow chatWindow;
     public ReflectionRuntimeController componentController; // Reference to your component controller
     private OpenAIClient openAI; // OpenAI Client
     public string AssistantID;
@@ -155,7 +155,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
         foreach (var message in messageList.Items)
         {
             Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");
-            UpdateChat($"{message.Role}: {message.PrintContent()}");
+            //UpdateChat($"{message.Role}: {message.PrintContent()}");
         }
     }
 
@@ -165,14 +165,14 @@ public class GPTReflectionAnalysis : MonoBehaviour
     /// </summary>
     public void SubmitChat()
     {
-        if (ParseKeyword(chatBehaviour.inputField.text))
+        if (ParseKeyword(chatWindow.inputField.text))
         {
             //componentController.SearchFunctions(ParseFunctionName(chatBehaviour.inputField.text));
             Debug.Log($"Keyword found");
         } else
         {
             //chatBehaviour.SubmitChat(chatBehaviour.inputField.text);
-            RetrieveAssistant(chatBehaviour.inputField.text);
+            RetrieveAssistant(chatWindow.inputField.text);
         }
     }
 
@@ -211,17 +211,18 @@ public class GPTReflectionAnalysis : MonoBehaviour
         // ...
 
         Debug.Log("GPT Analysis:\n" + gptResponse);
-        chatBehaviour.UpdateChat(gptResponse);
+        chatWindow.UpdateChat(gptResponse);
     }
 
 
     public void UpdateChat(string newText)
     {
-        chatBehaviour.conversation.AppendMessage(new OpenAI.Chat.Message(Role.Assistant, newText));
+        chatWindow.UpdateChat(newText);
+        //chatWindow.conversation.AppendMessage(new OpenAI.Chat.Message(Role.Assistant, newText));
         //inputField.text = newText;
-        var assistantMessageContent = chatBehaviour.AddNewTextMessageContent(Role.Assistant);
-        assistantMessageContent.text = newText;
-        chatBehaviour.scrollView.verticalNormalizedPosition = 0f;
+        //var assistantMessageContent = chatWindow.AddNewTextMessageContent(Role.Assistant);
+        //assistantMessageContent.text = newText;
+        //chatWindow.scrollView.verticalNormalizedPosition = 0f;
 
     }
 

@@ -1678,8 +1678,8 @@ GameObject:
   - component: {fileID: 1392328597}
   - component: {fileID: 1392328596}
   - component: {fileID: 1392328595}
-  - component: {fileID: 1392328600}
   - component: {fileID: 1392328601}
+  - component: {fileID: 1392328602}
   m_Layer: 0
   m_Name: GPT
   m_TagString: Untagged
@@ -1699,7 +1699,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7767c18b612d2415ea119a683774af01, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  chatBehaviour: {fileID: 1392328600}
+  chatWindow: {fileID: 1392328602}
   componentController: {fileID: 1392328601}
   AssistantID: asst_VoiPfdUxshtiYwJVlTzDfJTu
 --- !u!65 &1392328596
@@ -1788,29 +1788,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1392328600
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1392328594}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a891710bf1466924297c3b3b6f1b6e51, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  enableDebug: 1
-  submitButton: {fileID: 909308889}
-  recordButton: {fileID: 1700876597}
-  inputField: {fileID: 643272499}
-  contentArea: {fileID: 1427018838}
-  scrollView: {fileID: 1232174056}
-  audioSource: {fileID: 834574747}
-  systemPrompt: 'You are a helpful assistant.
-
-    - If an image is requested then
-    use "![Image](output.jpg)" to display it.'
 --- !u!114 &1392328601
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1828,6 +1805,30 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   customObject: {fileID: 0}
+--- !u!114 &1392328602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1392328594}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f2b7f64c22a94a49a148e5addd319cc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  enableDebug: 1
+  submitButton: {fileID: 909308889}
+  recordButton: {fileID: 1700876597}
+  inputField: {fileID: 643272499}
+  contentArea: {fileID: 1427018838}
+  scrollView: {fileID: 1232174056}
+  audioSource: {fileID: 834574747}
+  systemPrompt: 'You are a helpful AI debugging assistant that helps me interface
+    and understand my code with the Reflection library.
+
+    - If an image is requested
+    then use "![Image](output.jpg)" to display it.'
 --- !u!1 &1413235914
 GameObject:
   m_ObjectHideFlags: 0
@@ -2672,6 +2673,7 @@ GameObject:
   - component: {fileID: 2070926221}
   - component: {fileID: 2070926223}
   - component: {fileID: 2070926222}
+  - component: {fileID: 2070926224}
   m_Layer: 5
   m_Name: Text
   m_TagString: Untagged
@@ -2795,6 +2797,76 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2070926220}
   m_CullTransparentMesh: 1
+--- !u!114 &2070926224
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2070926220}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcb87846e43a704469d9be7ef4faa09a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _Source: markdown
+  RenderSettings:
+    Bold:
+      RenderBold: 1
+    Italics:
+      RenderItalics: 1
+    Strikethrough:
+      RenderStrikethrough: 1
+    Monospace:
+      RenderMonospace: 1
+      UseCustomFont: 0
+      FontAssetPathRelativeToResources: Noto/Noto Mono/NotoMono-Regular
+      DrawOverlay: 1
+      OverlayColor: {r: 0, g: 0, b: 0, a: 0.23529412}
+      OverlayPaddingPixels: 25
+      ManuallySetCharacterSpacing: 0
+      CharacterSpacing: 0.69
+      AddSeparationSpacing: 1
+      SeparationSpacing: 0.3
+    Lists:
+      RenderUnorderedLists: 1
+      RenderOrderedLists: 1
+      UnorderedListBullet: "\u2022"
+      OrderedListNumberSuffix: .
+      VerticalOffset: 0.76
+      BulletOffsetPixels: 100
+      ContentSeparationPixels: 20
+    Links:
+      RenderLinks: 1
+      RenderAutoLinks: 1
+      LinkColor: {r: 0.11372549, g: 0.4862745, b: 0.91764706, a: 1}
+    Headers:
+      RenderPoundSignHeaders: 1
+      RenderLineHeaders: 1
+      Levels:
+      - Size: 2
+        Bold: 1
+        Underline: 1
+        Case: 0
+        VerticalSpacing: 0.45
+      - Size: 1.7
+        Bold: 1
+        Underline: 1
+        Case: 0
+        VerticalSpacing: 0.3
+      - Size: 1.5
+        Bold: 1
+        Underline: 0
+        Case: 0
+        VerticalSpacing: 0
+      - Size: 1.3
+        Bold: 1
+        Underline: 0
+        Case: 0
+        VerticalSpacing: 0
+    Superscript:
+      RenderSuperscript: 1
+      RenderChainSuperscript: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
