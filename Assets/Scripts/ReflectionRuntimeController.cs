@@ -13,21 +13,8 @@ public class ReflectionRuntimeController : MonoBehaviour
     [SerializeField] public Dictionary<string, ClassInfo> classCollection = new Dictionary<string, ClassInfo>();
     [SerializeField] public UnityEngine.Object customObject;
 
-    void Update()
-    {
-        // Check for space bar press
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            ScanAndPopulateClasses();
-        }
-        //if (Input.GetKeyDown(KeyCode.RightArrow))
-        //{
-        //    SetCustomObject(FindObjectOfType<ColorChangeScript>());
-        //    InvokePublicMethod("ColorChangeScript", "ChangeColor");
-        //}
-    }
 
-    void ScanAndPopulateClasses()
+    public void ScanAndPopulateClasses()
     {
         Debug.Log("Scanning...");
         // Clearing existing data
@@ -185,7 +172,7 @@ public class ReflectionRuntimeController : MonoBehaviour
                     variableValues.AppendLine($"- {variable.Key}: {variableValue}");
                 }
             }
-
+            Debug.Log(variableValues.ToString());
             return variableValues.ToString();
         }
         else
