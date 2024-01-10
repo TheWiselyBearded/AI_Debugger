@@ -132,12 +132,9 @@ public class ChatWindow : MonoBehaviour
     private static bool isChatPending;
 
     public void UpdateChat(string newText)
-    {
-        conversation.AppendMessage(new Message(Role.Assistant, newText));
+    {        
         //inputField.text = newText;
-        var assistantMessageContent = AddNewTextMessageContent(Role.Assistant);
-        //assistantMessageContent.text = newText;
-        //assistantMessageContent.GetComponent<MarkdownRenderer>().TextMesh.text = newText;
+        var assistantMessageContent = AddNewTextMessageContent(Role.Assistant);        
         assistantMessageContent.GetComponent<MarkdownRenderer>().Source = newText;
         scrollView.verticalNormalizedPosition = 0f;
 

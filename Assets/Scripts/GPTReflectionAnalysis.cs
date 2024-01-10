@@ -26,6 +26,10 @@ public class GPTReflectionAnalysis : MonoBehaviour
     private OpenAIClient openAI; // OpenAI Client
     public string AssistantID;
 
+    public Dictionary<string, MessageResponse> gptDebugMessages;
+
+    private static bool isChatPending;  // manage state of chat requests to prevent spamming
+
     #region GPTAssistantIDs
     private string threadID;
     private string messageID;
@@ -33,43 +37,25 @@ public class GPTReflectionAnalysis : MonoBehaviour
     protected OpenAI.Threads.ThreadResponse GPTthread;
     #endregion
 
-    private void Start()
+    private void Awake()
     {
         // Initialize the OpenAI Client
         openAI = new OpenAIClient();
+        gptDebugMessages = new Dictionary<string, MessageResponse>();
     }
 
-    private void Update()
-    {
-        // Check if the 'Q' key is pressed
-        if (Input.GetKeyDown(KeyCode.Q))
-        {
-            // Call the AnalyzeComponents method
-            Debug.Log("running task");
-            AnalyzeComponents();
-        }
-        if (Input.GetKeyDown(KeyCode.LeftArrow)) RetrieveAssistant();
-        if (Input.GetKeyDown(KeyCode.RightArrow)) RetrieveAssistantResponse();
-    }
 
-    private async void AnalyzeComponents()
+    public void AnalyzeComponents()
     {
         // Format the data from your ComponentRuntimeController into a string for GPT analysis
         string dataForGPT = FormatDataForGPT(componentController.classCollection);
-
         // Pre-prompt for the GPT query
         string gptPrompt = "Given the following snapshot of the runtime environment with classes, methods, and variables, can you analyze the relationships among these components and their runtime values? " +
             "Please leverage your knowledge of the code base as well using the documentation that was given to you, specifically looking at the classes specified in this message with respect to your documentation.";
 
         // Combine the prompt with the data
         string combinedMessage = $"{gptPrompt}\n{dataForGPT}";
-
         Debug.Log(combinedMessage);
-        // Create a message list for the chat request
-        var messages = new List<OpenAI.Chat.Message>
-        {
-            new OpenAI.Chat.Message(Role.System, combinedMessage),
-        };
 
         try
         {
@@ -78,9 +64,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
             var response = result.ToString();*/
             RetrieveAssistant(combinedMessage);
 
-            //Debug.Log(response);
-            
-            //ProcessGPTResponse(response);
+            //Debug.Log(response);         
         }
         catch (Exception e)
         {
@@ -89,7 +73,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
         finally
         {
             //if (lifetimeCancellationTokenSource != null) {}
-            //isChatPending = false;
+            isChatPending = false;
         }
 
     }
@@ -97,6 +81,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
     
     private async void RetrieveAssistant(string txt = "What exactly is all the code doing around me and what relationships do the scripts have with one another?")
     {
+        isChatPending = true;
         var assistant = await openAI.AssistantsEndpoint.RetrieveAssistantAsync(AssistantID);
         Debug.Log($"{assistant} -> {assistant.CreatedAt}");
 
@@ -108,21 +93,43 @@ public class GPTReflectionAnalysis : MonoBehaviour
         //txt += " Please provide responses in rich text format (rtf).";
         var request = new CreateMessageRequest(txt);
         var message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
-        // OR use extension method for convenience!
-        //var message = await thread.CreateMessageAsync("Hello World!");
+        
         messageID = message.Id;
         Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");
+
+        if (!gptDebugMessages.ContainsKey(message.Id))
+        {
+            gptDebugMessages.Add(message.Id, message);
+            UpdateChat($"{message.Role}: {message.PrintContent()}");
+        }
 
         var run = await GPTthread.CreateRunAsync(assistant);
         Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
         runID = run.Id;
 
         var messageList = await RetrieveAssistantResponseAsync();
-        foreach (var _message in messageList.Items)
+        // TODO: Remove duplicate message instances, perhaps storing a list at runtime of message instnaces and checking for duplicates,
+        // maybe use hashmap to key by message id
+        for (int index = messageList.Items.Count-1; index >= 0; index--)
+        {
+            var _message = messageList.Items[index];
+            Debug.Log($"{_message.Id}: {_message.Role}: {_message.PrintContent()}");
+            if (!gptDebugMessages.ContainsKey(_message.Id))
+            {
+                gptDebugMessages.Add(_message.Id, _message);
+                UpdateChat($"{_message.Role}: {_message.PrintContent()}");
+            }
+        }
+
+        /*foreach (var _message in messageList.Items)
         {
             Debug.Log($"{_message.Id}: {_message.Role}: {_message.PrintContent()}");
-            UpdateChat($"{_message.Role}: {_message.PrintContent()}");
-        }
+            if (!gptDebugMessages.ContainsKey(_message.Id))
+            {
+                gptDebugMessages.Add(_message.Id, _message);
+                UpdateChat($"{_message.Role}: {_message.PrintContent()}");
+            }
+        }*/
     }
 
 
@@ -154,8 +161,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
         foreach (var message in messageList.Items)
         {
-            Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");
-            //UpdateChat($"{message.Role}: {message.PrintContent()}");
+            Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");            
         }
     }
 
@@ -204,15 +210,6 @@ public class GPTReflectionAnalysis : MonoBehaviour
         return formattedData.ToString();
     }
 
-
-    private void ProcessGPTResponse(string gptResponse)
-    {
-        // Process the GPT response to extract useful information
-        // ...
-
-        Debug.Log("GPT Analysis:\n" + gptResponse);
-        chatWindow.UpdateChat(gptResponse);
-    }
 
 
     public void UpdateChat(string newText)
