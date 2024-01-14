@@ -4,5 +4,8 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/AI_Debugger/Scenes/AI_Debugger_Main.unity
+    guid: 838b67531382c4e16971f27fab1659c2
   m_configObjects: {}

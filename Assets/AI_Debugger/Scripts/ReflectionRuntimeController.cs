@@ -8,6 +8,8 @@ using System.Collections;
 
 public class ReflectionRuntimeController : MonoBehaviour
 {
+    public bool ScanCollidersOnly; 
+
     public float detectionRadius = 5f; // Radius for proximity detection
     public LayerMask detectionLayer; // Layer mask to filter which objects to detect
     [SerializeField] public Dictionary<string, ClassInfo> classCollection = new Dictionary<string, ClassInfo>();
@@ -19,15 +21,51 @@ public class ReflectionRuntimeController : MonoBehaviour
         Debug.Log("Scanning...");
         // Clearing existing data
         classCollection.Clear();
-
-        // Find all colliders within the specified radius
-        Collider[] colliders = Physics.OverlapSphere(transform.position, detectionRadius, detectionLayer);
-        foreach (Collider collider in colliders)
-        {
-            GameObject obj = collider.gameObject;
-            PopulateClassInfo(obj);
+        
+        if (ScanCollidersOnly) {    // Find all colliders within the specified radius
+            Collider[] colliders = Physics.OverlapSphere(transform.position, detectionRadius, detectionLayer);
+            foreach (Collider collider in colliders) {
+                GameObject obj = collider.gameObject;
+                PopulateClassInfo(obj);
+            }
+            Debug.Log($"Total {colliders.Length}");
+        } else {
+            PopulateClassInfo();
+            Debug.Log($"Total {classCollection.Count}");
         }
-        Debug.Log($"Total {colliders.Length}");
+
+    }
+
+    void PopulateClassInfo() {
+
+        MonoBehaviour[] scripts = UnityEngine.Object.FindObjectsOfType<MonoBehaviour>();
+        foreach (MonoBehaviour script in scripts) {
+            Type type = script.GetType();
+            var scope = type.Namespace;
+            if (scope == null || (!scope.StartsWith("Unity") && !scope.StartsWith("UnityEngine.UI") && !scope.StartsWith("TMPro"))) {
+                Debug.Log(script.GetType().FullName + " is used within " + script.gameObject.name);
+                var classInfo = new ClassInfo();
+
+                // Populate methods
+                foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly)) {
+                    classInfo.Methods[method.Name] = method;
+                }
+
+                //foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+                foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)) {
+                    classInfo.Variables[field.Name] = field;
+                    // Retrieve and store the current value of the variable
+                    object value = field.GetValue(script);
+                    classInfo.VariableValues[field.Name] = value;
+                }
+
+                // Add to class collection
+                if (!classCollection.ContainsKey(type.Name)) {
+                    classCollection[type.Name] = classInfo;
+                }
+
+            }
+        }
     }
 
     void PopulateClassInfo(GameObject obj)
@@ -208,6 +246,8 @@ public class ReflectionRuntimeController : MonoBehaviour
 
 
     public void SetCustomObject(UnityEngine.Object obj) => customObject = obj;
+
+    public void SetColliderTrigger(bool status) => ScanCollidersOnly = status;
 
 }
 

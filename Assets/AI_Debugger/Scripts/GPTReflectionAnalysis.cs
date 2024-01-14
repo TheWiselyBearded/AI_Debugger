@@ -51,12 +51,17 @@ public class GPTReflectionAnalysis : MonoBehaviour
     protected void Start()
     {
         chatWindow.inputField.onSubmit.AddListener(SubmitChat);
+        ChatWindow.onSTT += ProcessVoiceInput;
     }
+
+    public void ProcessVoiceInput(string voiceInput) => RetrieveAssistant(voiceInput);
+    
 
     protected void OnDestroy()
     {
         gptDebugMessages = null;
         chatWindow.inputField.onSubmit.RemoveAllListeners();
+        ChatWindow.onSTT -= ProcessVoiceInput;
     }
 
     public void SubmitChat(string _) => SubmitChat();
@@ -117,7 +122,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
         if (!gptDebugMessages.ContainsKey(message.Id))
         {
             gptDebugMessages.Add(message.Id, message);
-            UpdateChat($"{message.Role}: {message.PrintContent()}");
+            UpdateChat($"User: {message.PrintContent()}");
         }
 
         var run = await GPTthread.CreateRunAsync(assistant);

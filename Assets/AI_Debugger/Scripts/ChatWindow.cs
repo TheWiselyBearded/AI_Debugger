@@ -25,6 +25,8 @@ using OpenAI;
 
 public class ChatWindow : MonoBehaviour
 {
+    [SerializeField]
+    public GameObject audioPanel;
 
     [SerializeField]
     private bool enableDebug;
@@ -50,6 +52,10 @@ public class ChatWindow : MonoBehaviour
     [SerializeField]
     [TextArea(3, 10)]
     private string systemPrompt = "You are a helpful AI debugging assistant that helps me interface and understand my code with the Reflection library.\n- If an image is requested then use \"![Image](output.jpg)\" to display it.";
+
+
+    public delegate void OnSpeechToText(string text);
+    public static OnSpeechToText onSTT;
 
     private OpenAIClient openAI;
 
@@ -137,7 +143,7 @@ public class ChatWindow : MonoBehaviour
         var assistantMessageContent = AddNewTextMessageContent(Role.Assistant);        
         assistantMessageContent.GetComponent<MarkdownRenderer>().Source = newText;
         scrollView.verticalNormalizedPosition = 0f;
-
+        if (audioPanel.activeInHierarchy && !newText.Contains("User:")) GenerateSpeech(newText);
     }
 
 
@@ -252,7 +258,8 @@ public class ChatWindow : MonoBehaviour
         text = text.Replace("![Image](output.jpg)", string.Empty);
         var request = new SpeechRequest(text, Model.TTS_1);
         var (clipPath, clip) = await openAI.AudioEndpoint.CreateSpeechAsync(request, lifetimeCancellationTokenSource.Token);
-        audioSource.PlayOneShot(clip);
+        audioSource.clip = clip;
+        audioSource.Play();        
 
         if (enableDebug)
         {
@@ -293,6 +300,16 @@ public class ChatWindow : MonoBehaviour
         return results.FirstOrDefault();
     }
 
+
+    /// <summary>
+    /// invoked via settings toggle menu
+    /// </summary>    
+    public void EnableAudioInterface(bool status) {
+        audioPanel.SetActive(status);
+        //recordButton.SetActive(status);
+        audioSource.enabled = status;
+    }
+
     private void ToggleRecording()
     {
         RecordingManager.EnableDebug = enableDebug;
@@ -329,7 +346,9 @@ public class ChatWindow : MonoBehaviour
             }
 
             inputField.text = userInput;
-            SubmitChat();
+            //UpdateChat(userInput);
+            onSTT?.Invoke(userInput);
+            inputField.interactable = true;
         }
         catch (Exception e)
         {
