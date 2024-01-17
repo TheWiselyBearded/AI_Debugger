@@ -79,6 +79,9 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     protected void OnDestroy()
     {
+        if (saveMode) {
+            WriteConversationToFile();
+        }
         gptDebugMessages = null;
         chatWindow.inputField.onSubmit.RemoveAllListeners();
         ChatWindow.onSTT -= ProcessVoiceInput;
@@ -227,17 +230,26 @@ public class GPTReflectionAnalysis : MonoBehaviour
         }
     }
 
-    private void WriteConversationToFile(string text) {
+    /// <summary>
+    /// TODO: Format writing of file to be more properly ordered and formatted (distinguish user/assistant)
+    /// </summary>
+    private void WriteConversationToFile() {
+        // iterate over all messages and create a long string for now
+        StringBuilder formattedData = new StringBuilder();
+
+        foreach (MessageResponse mr in gptDebugMessages.Values) {
+            formattedData.AppendLine($"{mr.Role}: {mr.PrintContent()}");           
+        }
         // Fire and forget method to write to a file asynchronously
         System.Threading.Tasks.Task.Run(async () => {
-            // TODO: Add datetime timestamp
-            string path = Path.Combine(Application.streamingAssetsPath, "FormattedData.txt");
+            string filename = $"ConversationData_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt";
+            string path = Path.Combine(Application.streamingAssetsPath,filename);
             using (StreamWriter writer = new StreamWriter(path, false)) {
-                await writer.WriteAsync(text);
+                await writer.WriteAsync(formattedData.ToString());
+                Debug.Log($"Wrote conversation file to {path}");
             }
-        });
+        });        
     }
-
 
     /// <summary>
     /// invoke via button press
@@ -408,7 +420,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
         return ParseClassName(input, patternStart); // Reusing the same logic as class name parsing
     }
 
-
+    
 }
 
 
