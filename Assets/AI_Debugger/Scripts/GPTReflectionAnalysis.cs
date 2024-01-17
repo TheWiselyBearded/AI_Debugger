@@ -19,6 +19,8 @@ using OpenAI.Threads;
 using UnityEditor.VersionControl;
 using Utilities.WebRequestRest;
 using Unity.VisualScripting;
+using System.IO;
+using OpenAI.Files;
 
 public class GPTReflectionAnalysis : MonoBehaviour
 {
@@ -26,18 +28,24 @@ public class GPTReflectionAnalysis : MonoBehaviour
     public ReflectionRuntimeController componentController; // Reference to your component controller
     private OpenAIClient openAI; // OpenAI Client
     public string AssistantID;
+    public string AssistantIDGPT3;
+    public string AssistantIDGPT4;
 
     public Dictionary<string, MessageResponse> gptDebugMessages;
 
     public KeywordEvent[] keywordEvents;
 
+
+    protected bool saveMode;
     private static bool isChatPending;  // manage state of chat requests to prevent spamming
 
-    #region GPTAssistantIDs
+
+    #region GPTAssistantVariables
     private string threadID;
     private string messageID;
     private string runID;
     protected OpenAI.Threads.ThreadResponse GPTthread;
+    private const int GPT4_CHARACTERLIMIT = 32768;
     #endregion
 
     private void Awake()
@@ -55,7 +63,19 @@ public class GPTReflectionAnalysis : MonoBehaviour
     }
 
     public void ProcessVoiceInput(string voiceInput) => RetrieveAssistant(voiceInput);
-    
+
+    /// <summary>
+    /// invoked via settings button
+    /// </summary>    
+    public void SetSaveMode(bool status) => saveMode = status;
+
+    /// <summary>
+    /// invoked via settings button
+    /// </summary>
+    public void SetGPT3Mode(bool status) {
+        if (status) AssistantID = AssistantIDGPT3;
+        else AssistantID = AssistantIDGPT4;
+    }
 
     protected void OnDestroy()
     {
@@ -66,7 +86,9 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     public void SubmitChat(string _) => SubmitChat();
 
-
+    /// <summary>
+    /// invoked externally via button press/mapping
+    /// </summary>
     public void AnalyzeComponents()
     {
         // Format the data from your ComponentRuntimeController into a string for GPT analysis
@@ -78,22 +100,9 @@ public class GPTReflectionAnalysis : MonoBehaviour
         // Combine the prompt with the data
         string combinedMessage = $"{gptPrompt}\n{dataForGPT}";
         Debug.Log(combinedMessage);
-
-        try
-        {
-            /*var chatRequest = new ChatRequest(messages, Model.GPT3_5_Turbo);
-            var result = await openAI.ChatEndpoint.GetCompletionAsync(chatRequest);
-            var response = result.ToString();*/
-            RetrieveAssistant(combinedMessage);
-
-            //Debug.Log(response);         
-        }
-        catch (Exception e)
-        {
-            Debug.LogError(e);
-        }
-        finally
-        {
+        try { RetrieveAssistant(combinedMessage); }
+        catch (Exception e) { Debug.LogError(e); }
+        finally {
             //if (lifetimeCancellationTokenSource != null) {}
             isChatPending = false;
         }
@@ -101,7 +110,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
     }
 
     
-    private async void RetrieveAssistant(string txt = "What exactly is all the code doing around me and what relationships do the scripts have with one another?")
+    private async void RetrieveAssistant(string msg = "What exactly is all the code doing around me and what relationships do the scripts have with one another?")
     {
         isChatPending = true;
         var assistant = await openAI.AssistantsEndpoint.RetrieveAssistantAsync(AssistantID);
@@ -112,9 +121,31 @@ public class GPTReflectionAnalysis : MonoBehaviour
             GPTthread = await openAI.ThreadsEndpoint.CreateThreadAsync();
             threadID = GPTthread.Id;
         }
-        //txt += " Please provide responses in rich text format (rtf).";
-        var request = new CreateMessageRequest(txt);
-        var message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
+
+        CreateMessageRequest request;
+        MessageResponse message;
+
+        if (msg.Length > GPT4_CHARACTERLIMIT) { // check if char count exceed, if so make file, then submit to GPTAssistant
+            msg += "Please first make sure to read the file attached to this message before responding.";
+            MemoryStream ms = await WriteGPTQueryToStream(msg);            
+            string tempFilePath = Path.Combine(Application.temporaryCachePath, "tempFile.txt");
+            using (FileStream file = new FileStream(tempFilePath, System.IO.FileMode.Create, FileAccess.Write)) ms.WriteTo(file);
+            ms.Close();
+
+            var fileData = await openAI.FilesEndpoint.UploadFileAsync(tempFilePath, "assistants");                        
+            Debug.Log($"Exceeded character count, creating file upload req {fileData.Id}");
+            List<string> fileIds = new List<string>
+            {
+                fileData.Id
+            };
+            request = new CreateMessageRequest(msg, fileIds);            
+            message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
+            //var messageFileMsg = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, requestFileMsg);
+        } else {
+            request = new CreateMessageRequest(msg);
+            message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
+        }
+
         
         messageID = message.Id;
         Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");
@@ -129,9 +160,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
         Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
         runID = run.Id;
 
-        var messageList = await RetrieveAssistantResponseAsync();
-        // TODO: Remove duplicate message instances, perhaps storing a list at runtime of message instnaces and checking for duplicates,
-        // maybe use hashmap to key by message id
+        var messageList = await RetrieveAssistantResponseAsync();        
         for (int index = messageList.Items.Count-1; index >= 0; index--)
         {
             var _message = messageList.Items[index];
@@ -141,17 +170,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
                 gptDebugMessages.Add(_message.Id, _message);
                 UpdateChat($"{_message.Role}: {_message.PrintContent()}");
             }
-        }
-
-        /*foreach (var _message in messageList.Items)
-        {
-            Debug.Log($"{_message.Id}: {_message.Role}: {_message.PrintContent()}");
-            if (!gptDebugMessages.ContainsKey(_message.Id))
-            {
-                gptDebugMessages.Add(_message.Id, _message);
-                UpdateChat($"{_message.Role}: {_message.PrintContent()}");
-            }
-        }*/
+        }        
     }
 
 
@@ -185,6 +204,38 @@ public class GPTReflectionAnalysis : MonoBehaviour
         {
             Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");            
         }
+    }
+
+    /// <summary>
+    /// When character count is exceeded, return a MemoryStream containing the GPT query text.
+    /// </summary>
+    /// <param name="text">Query Text for GPT</param>
+    /// <returns>MemoryStream containing the text</returns>
+    private async Task<MemoryStream> WriteGPTQueryToStream(string text) {
+        // Create a MemoryStream
+        var memoryStream = new MemoryStream();
+
+        // Use StreamWriter to write the text to the MemoryStream
+        using (StreamWriter writer = new StreamWriter(memoryStream, Encoding.UTF8, 1024,leaveOpen: true)) {
+            await writer.WriteAsync(text);
+            await writer.FlushAsync(); // Ensure all data is written to the stream
+
+            // Reset the position of the stream to the beginning
+            memoryStream.Position = 0;
+
+            return memoryStream;
+        }
+    }
+
+    private void WriteConversationToFile(string text) {
+        // Fire and forget method to write to a file asynchronously
+        System.Threading.Tasks.Task.Run(async () => {
+            // TODO: Add datetime timestamp
+            string path = Path.Combine(Application.streamingAssetsPath, "FormattedData.txt");
+            using (StreamWriter writer = new StreamWriter(path, false)) {
+                await writer.WriteAsync(text);
+            }
+        });
     }
 
 
