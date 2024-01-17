@@ -28,6 +28,8 @@ public class GPTReflectionAnalysis : MonoBehaviour
     public ReflectionRuntimeController componentController; // Reference to your component controller
     private OpenAIClient openAI; // OpenAI Client
     public string AssistantID;
+    public string AssistantIDGPT3;
+    public string AssistantIDGPT4;
 
     public Dictionary<string, MessageResponse> gptDebugMessages;
 
@@ -62,8 +64,18 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     public void ProcessVoiceInput(string voiceInput) => RetrieveAssistant(voiceInput);
 
-
+    /// <summary>
+    /// invoked via settings button
+    /// </summary>    
     public void SetSaveMode(bool status) => saveMode = status;
+
+    /// <summary>
+    /// invoked via settings button
+    /// </summary>
+    public void SetGPT3Mode(bool status) {
+        if (status) AssistantID = AssistantIDGPT3;
+        else AssistantID = AssistantIDGPT4;
+    }
 
     protected void OnDestroy()
     {
@@ -88,24 +100,9 @@ public class GPTReflectionAnalysis : MonoBehaviour
         // Combine the prompt with the data
         string combinedMessage = $"{gptPrompt}\n{dataForGPT}";
         Debug.Log(combinedMessage);
-
-        
-
-        try
-        {
-            /*var chatRequest = new ChatRequest(messages, Model.GPT3_5_Turbo);
-            var result = await openAI.ChatEndpoint.GetCompletionAsync(chatRequest);
-            var response = result.ToString();*/
-            RetrieveAssistant(combinedMessage);
-
-            //Debug.Log(response);         
-        }
-        catch (Exception e)
-        {
-            Debug.LogError(e);
-        }
-        finally
-        {
+        try { RetrieveAssistant(combinedMessage); }
+        catch (Exception e) { Debug.LogError(e); }
+        finally {
             //if (lifetimeCancellationTokenSource != null) {}
             isChatPending = false;
         }
@@ -129,6 +126,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
         MessageResponse message;
 
         if (msg.Length > GPT4_CHARACTERLIMIT) { // check if char count exceed, if so make file, then submit to GPTAssistant
+            msg += "Please first make sure to read the file attached to this message before responding.";
             MemoryStream ms = await WriteGPTQueryToStream(msg);            
             string tempFilePath = Path.Combine(Application.temporaryCachePath, "tempFile.txt");
             using (FileStream file = new FileStream(tempFilePath, System.IO.FileMode.Create, FileAccess.Write)) ms.WriteTo(file);
