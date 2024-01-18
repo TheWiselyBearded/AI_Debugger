@@ -18,7 +18,7 @@ using System.Text.RegularExpressions;
 using OpenAI.Threads;
 using UnityEditor.VersionControl;
 using Utilities.WebRequestRest;
-using Unity.VisualScripting;
+//using Unity.VisualScripting;
 using System.IO;
 using OpenAI.Files;
 
@@ -130,17 +130,27 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
         if (msg.Length > GPT4_CHARACTERLIMIT) { // check if char count exceed, if so make file, then submit to GPTAssistant
             msg += "Please first make sure to read the file attached to this message before responding.";
-            MemoryStream ms = await WriteGPTQueryToStream(msg);            
-            string tempFilePath = Path.Combine(Application.temporaryCachePath, "tempFile.txt");
-            using (FileStream file = new FileStream(tempFilePath, System.IO.FileMode.Create, FileAccess.Write)) ms.WriteTo(file);
-            ms.Close();
+            MemoryStream ms = await WriteGPTQueryToStream(msg);
+            // Calculate the number of files needed
+            int numberOfFiles = (int)Math.Ceiling((double)ms.Length / GPT4_CHARACTERLIMIT);
+            List<string> fileIds = new List<string>();
+            for (int i = 0; i < numberOfFiles; i++) {
+                string tempFilePath = Path.Combine(Application.temporaryCachePath, $"tempFile_{i}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt");
 
-            var fileData = await openAI.FilesEndpoint.UploadFileAsync(tempFilePath, "assistants");                        
-            Debug.Log($"Exceeded character count, creating file upload req {fileData.Id}");
-            List<string> fileIds = new List<string>
-            {
-                fileData.Id
-            };
+                using (FileStream file = new FileStream(tempFilePath, System.IO.FileMode.Create, FileAccess.Write)) {
+                    // Copy the portion of the MemoryStream into the file
+                    ms.Position = i * GPT4_CHARACTERLIMIT;
+                    byte[] buffer = new byte[Math.Min(GPT4_CHARACTERLIMIT, ms.Length - ms.Position)];
+                    ms.Read(buffer, 0, buffer.Length);
+                    file.Write(buffer, 0, buffer.Length);
+                }
+
+                var fileData = await openAI.FilesEndpoint.UploadFileAsync(tempFilePath, "assistants");
+                Debug.Log($"Exceeded character count, creating file upload req {fileData.Id}");
+                fileIds.Add(fileData.Id);
+                // Optionally, delete the temporary file after upload
+                //File.Delete(tempFilePath);
+            }
             request = new CreateMessageRequest(msg, fileIds);            
             message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
             //var messageFileMsg = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, requestFileMsg);
