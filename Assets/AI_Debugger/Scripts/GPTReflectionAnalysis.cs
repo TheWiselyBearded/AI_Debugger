@@ -21,6 +21,7 @@ using Utilities.WebRequestRest;
 //using Unity.VisualScripting;
 using System.IO;
 using OpenAI.Files;
+using Mono.Cecil;
 
 public class GPTReflectionAnalysis : MonoBehaviour
 {
@@ -112,15 +113,13 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     }
 
-    
-    private async void RetrieveAssistant(string msg = "What exactly is all the code doing around me and what relationships do the scripts have with one another?")
-    {
+
+    private async void RetrieveAssistant(string msg = "What exactly is all the code doing around me and what relationships do the scripts have with one another?") {
         isChatPending = true;
         var assistant = await openAI.AssistantsEndpoint.RetrieveAssistantAsync(AssistantID);
         Debug.Log($"{assistant} -> {assistant.CreatedAt}");
 
-        if (threadID == null || threadID == string.Empty)
-        {
+        if (threadID == null || threadID == string.Empty) {
             GPTthread = await openAI.ThreadsEndpoint.CreateThreadAsync();
             threadID = GPTthread.Id;
         }
@@ -133,7 +132,8 @@ public class GPTReflectionAnalysis : MonoBehaviour
             MemoryStream ms = await WriteGPTQueryToStream(msg);
             // Calculate the number of files needed
             int numberOfFiles = (int)Math.Ceiling((double)ms.Length / GPT4_CHARACTERLIMIT);
-            List<string> fileIds = new List<string>();
+            FileReference[] files = new FileReference[numberOfFiles];
+            string[] fileIDs = new string[numberOfFiles];
             for (int i = 0; i < numberOfFiles; i++) {
                 string tempFilePath = Path.Combine(Application.temporaryCachePath, $"tempFile_{i}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt");
 
@@ -144,14 +144,18 @@ public class GPTReflectionAnalysis : MonoBehaviour
                     ms.Read(buffer, 0, buffer.Length);
                     file.Write(buffer, 0, buffer.Length);
                 }
+                files[i] = new FileReference { assetPath = tempFilePath };
 
-                var fileData = await openAI.FilesEndpoint.UploadFileAsync(tempFilePath, "assistants");
+                var fileData = await openAI.FilesEndpoint.UploadFileAsync(files[i].assetPath, "assistants");
                 Debug.Log($"Exceeded character count, creating file upload req {fileData.Id}");
-                fileIds.Add(fileData.Id);
+                fileIDs[i] = fileData.Id;
                 // Optionally, delete the temporary file after upload
                 //File.Delete(tempFilePath);
             }
-            request = new CreateMessageRequest(msg, fileIds);            
+            msg = "okay, based on everything in the text files I've given you in this message thread, what are some of the most important classes you've identified? Please explain how everything works";
+            //request = new CreateMessageRequest(msg, new[] { fileIDs[0], fileIDs[1], fileIDs[2] }); 
+            request = new CreateMessageRequest(msg, fileIDs);
+
             message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
             //var messageFileMsg = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, requestFileMsg);
         } else {
@@ -159,12 +163,11 @@ public class GPTReflectionAnalysis : MonoBehaviour
             message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
         }
 
-        
+
         messageID = message.Id;
         Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");
 
-        if (!gptDebugMessages.ContainsKey(message.Id))
-        {
+        if (!gptDebugMessages.ContainsKey(message.Id)) {
             gptDebugMessages.Add(message.Id, message);
             UpdateChat($"User: {message.PrintContent()}");
         }
@@ -173,17 +176,15 @@ public class GPTReflectionAnalysis : MonoBehaviour
         Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
         runID = run.Id;
 
-        var messageList = await RetrieveAssistantResponseAsync();        
-        for (int index = messageList.Items.Count-1; index >= 0; index--)
-        {
+        var messageList = await RetrieveAssistantResponseAsync();
+        for (int index = messageList.Items.Count - 1; index >= 0; index--) {
             var _message = messageList.Items[index];
             Debug.Log($"{_message.Id}: {_message.Role}: {_message.PrintContent()}");
-            if (!gptDebugMessages.ContainsKey(_message.Id))
-            {
+            if (!gptDebugMessages.ContainsKey(_message.Id)) {
                 gptDebugMessages.Add(_message.Id, _message);
                 UpdateChat($"{_message.Role}: {_message.PrintContent()}");
             }
-        }        
+        }
     }
 
 
@@ -435,9 +436,14 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
 
 [System.Serializable]
-public class KeywordEvent
-{
+public class KeywordEvent {
     public string Keyword;
     public string Description;
     public UnityEngine.Events.UnityEvent keywordEvent;
+}
+
+[Serializable]
+public class FileReference {
+    public string assetPath;
+    public bool markedForRemoval;
 }
