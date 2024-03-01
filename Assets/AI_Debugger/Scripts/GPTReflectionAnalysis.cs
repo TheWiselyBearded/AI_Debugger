@@ -16,12 +16,10 @@ using OpenAI.Samples.Chat;
 using UnityEngine.UIElements;
 using System.Text.RegularExpressions;
 using OpenAI.Threads;
-using UnityEditor.VersionControl;
 using Utilities.WebRequestRest;
 //using Unity.VisualScripting;
 using System.IO;
 using OpenAI.Files;
-using Mono.Cecil;
 
 public class GPTReflectionAnalysis : MonoBehaviour
 {
@@ -191,14 +189,14 @@ public class GPTReflectionAnalysis : MonoBehaviour
     private async Task<ListResponse<MessageResponse>> RetrieveAssistantResponseAsync()
     {
         var run = await openAI.ThreadsEndpoint.RetrieveRunAsync(threadID, runID);
-        //Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
+        Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
         RunStatus status = run.Status;
         while (status != RunStatus.Completed)
         {
             run = await openAI.ThreadsEndpoint.RetrieveRunAsync(threadID, runID);
             Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
             status = run.Status;
-            await System.Threading.Tasks.Task.Delay(1000);
+            await System.Threading.Tasks.Task.Delay(500);
         }
         var messageList = await openAI.ThreadsEndpoint.ListMessagesAsync(threadID);
         
