@@ -30,6 +30,8 @@ public class GPTReflectionAnalysis : MonoBehaviour
     public string AssistantIDGPT3;
     public string AssistantIDGPT4;
 
+    public SphereController sphereController;
+
     public Dictionary<string, MessageResponse> gptDebugMessages;
 
     public KeywordEvent[] keywordEvents;
@@ -59,6 +61,8 @@ public class GPTReflectionAnalysis : MonoBehaviour
     {
         chatWindow.inputField.onSubmit.AddListener(SubmitChat);
         ChatWindow.onSTT += ProcessVoiceInput;
+
+        sphereController.SetMode(SphereController.SphereMode.Idle);
     }
 
     public void ProcessVoiceInput(string voiceInput) => RetrieveAssistant(voiceInput);
@@ -113,6 +117,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
 
     private async void RetrieveAssistant(string msg = "What exactly is all the code doing around me and what relationships do the scripts have with one another?") {
+        sphereController.SetMode(SphereController.SphereMode.Listening);
         isChatPending = true;
         var assistant = await openAI.AssistantsEndpoint.RetrieveAssistantAsync(AssistantID);
         Debug.Log($"{assistant} -> {assistant.CreatedAt}");
@@ -306,7 +311,13 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
 
 
-    public void UpdateChat(string newText, MessageColorMode.MessageType msgType = MessageColorMode.MessageType.Sender) => chatWindow.UpdateChat(newText, msgType);
+    public void UpdateChat(string newText, MessageColorMode.MessageType msgType = MessageColorMode.MessageType.Sender)
+    {
+        chatWindow.UpdateChat(newText, msgType);
+        if (msgType == MessageColorMode.MessageType.Reciever) sphereController.SetMode(SphereController.SphereMode.Talking);
+        if (msgType == MessageColorMode.MessageType.Sender) sphereController.SetMode(SphereController.SphereMode.Listening);
+
+    }
 
 
 
