@@ -30,7 +30,7 @@ public class MessageColorMode : MonoBehaviour
         if (messageType == MessageType.Sender)
         {
             Vector2 anchoredPosition = rectTransform.anchoredPosition;
-            anchoredPosition.x += 40f;
+            anchoredPosition.x += 80f;
             rectTransform.anchoredPosition = anchoredPosition;
         }
     }

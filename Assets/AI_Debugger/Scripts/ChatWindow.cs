@@ -139,10 +139,10 @@ public class ChatWindow : MonoBehaviour
 
     private static bool isChatPending;
 
-    public void UpdateChat(string newText)
+    public void UpdateChat(string newText, MessageColorMode.MessageType msgType)
     {        
         //inputField.text = newText;
-        var assistantMessageContent = AddNewTextMessageContent(Role.Assistant);        
+        var assistantMessageContent = AddNewTextMessageContent(msgType == MessageColorMode.MessageType.Sender ? Role.User : Role.Assistant);        
         assistantMessageContent.GetComponent<MarkdownRenderer>().Source = newText;
         scrollView.verticalNormalizedPosition = 0f;
         if (audioPanel.activeInHierarchy && !newText.Contains("User:")) GenerateSpeech(newText);
@@ -275,7 +275,11 @@ public class ChatWindow : MonoBehaviour
         textObject.name = $"{contentArea.childCount + 1}_{role}";
         //var textObject = new GameObject($"{contentArea.childCount + 1}_{role}");
         //textObject.transform.SetParent(contentArea, false);
-        var textMesh = textObject.GetComponent<MessageColorMode>().messageText;
+        var msgColorMode = textObject.GetComponent<MessageColorMode>();
+        if (role == Role.User) msgColorMode.SetMode(MessageColorMode.MessageType.Sender);
+        else msgColorMode.SetMode(MessageColorMode.MessageType.Reciever);
+
+        var textMesh = msgColorMode.messageText;
         MarkdownRenderer mr = textMesh.gameObject.AddComponent<MarkdownRenderer>();
         mr.RenderSettings.Monospace.UseCustomFont = false;
         mr.RenderSettings.Lists.BulletOffsetPixels = 40;

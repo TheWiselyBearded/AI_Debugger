@@ -180,7 +180,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
             Debug.Log($"{_message.Id}: {_message.Role}: {_message.PrintContent()}");
             if (!gptDebugMessages.ContainsKey(_message.Id)) {
                 gptDebugMessages.Add(_message.Id, _message);
-                UpdateChat($"{_message.Role}: {_message.PrintContent()}");
+                UpdateChat($"{_message.Role}: {_message.PrintContent()}", _message.Role == Role.User ? MessageColorMode.MessageType.Sender : MessageColorMode.MessageType.Reciever);
             }
         }
     }
@@ -306,7 +306,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
 
 
-    public void UpdateChat(string newText) => chatWindow.UpdateChat(newText);
+    public void UpdateChat(string newText, MessageColorMode.MessageType msgType = MessageColorMode.MessageType.Sender) => chatWindow.UpdateChat(newText, msgType);
 
 
 

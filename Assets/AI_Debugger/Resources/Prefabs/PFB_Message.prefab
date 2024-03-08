@@ -215,12 +215,28 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\r\n    public MessageType messageType;\r\n    public Color32 senderColor
-    = new Color32(86, 250, 102, 112);\r\n    public Color32 receiverColor = new Color32(112,
-    160, 255, 100);\r\n    public Image image;\r\n    public void SetMessageColor()
-    => image.color = messageType == MessageType.Sender ? senderColor : receiverColor;\r\n   
-    public void SetMode(MessageType _messageType)\r\n    {\r\n        messageType
-    = _messageType;\r\n        SetMessageColor();\r\n    }\r\n"
+  m_text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed aliquet risus
+    eget neque fermentum, eu tempor est aliquam. Nam nec ante at sapien malesuada
+    fermentum. Nullam venenatis, nunc sed tristique sodales, mauris felis scelerisque
+    arcu, vel fermentum leo magna vel est. Ut sollicitudin ullamcorper magna, eu
+    gravida justo.
+
+    
+
+    Pellentesque habitant morbi tristique senectus et
+    netus et malesuada fames ac turpis egestas. Proin posuere placerat mauris non
+    tristique. Curabitur aliquam pretium purus, a finibus tortor pharetra ut. Fusce
+    nec magna vehicula, consectetur eros vitae, maximus nibh. Integer vitae neque
+    eget odio aliquet aliquam.
+
+    
+
+    Suspendisse ut felis a elit faucibus
+    aliquet. Nam auctor consequat massa, vel consectetur lectus eleifend at. Phasellus
+    non tortor nulla. Quisque lacinia nisl in est condimentum, vel ultrices odio
+    viverra. In ut aliquam ante. Vestibulum ante ipsum primis in faucibus orci luctus
+    et ultrices posuere cubilia curae; Sed pretium felis in dui varius, ac tristique
+    risus dictum. Sed nec semper metus.'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -251,8 +267,8 @@ MonoBehaviour:
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
-  m_fontSizeMin: 18
-  m_fontSizeMax: 28.82
+  m_fontSizeMin: 12
+  m_fontSizeMax: 18
   m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 256
@@ -1138,7 +1154,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8567517006660413159}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: -0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1148,7 +1164,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 15.000006, y: -4.999995}
+  m_AnchoredPosition: {x: 55, y: -4.999995}
   m_SizeDelta: {x: 6, y: -10}
   m_Pivot: {x: 1, y: 1}
 --- !u!222 &8838726913955476481
@@ -1233,7 +1249,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 8470969859498803851}
   m_Direction: 2
   m_Value: 1
-  m_Size: 0.09049773
+  m_Size: 0.07016396
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -1276,7 +1292,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: -25.000006, y: -4.999995}
-  m_SizeDelta: {x: 33, y: -27}
+  m_SizeDelta: {x: 70.62, y: -10}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &3638713735575821993
 CanvasRenderer:
