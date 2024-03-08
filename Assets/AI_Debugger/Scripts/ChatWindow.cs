@@ -25,6 +25,8 @@ using OpenAI;
 
 public class ChatWindow : MonoBehaviour
 {
+    public GameObject pfb_chatMsgUI;
+
     [SerializeField]
     public GameObject audioPanel;
 
@@ -269,10 +271,12 @@ public class ChatWindow : MonoBehaviour
 
     public TextMeshProUGUI AddNewTextMessageContent(Role role)
     {
-        var textObject = new GameObject($"{contentArea.childCount + 1}_{role}");
-        textObject.transform.SetParent(contentArea, false);
-        var textMesh = textObject.AddComponent<TextMeshProUGUI>();
-        MarkdownRenderer mr = textObject.AddComponent<MarkdownRenderer>();
+        var textObject = Instantiate(pfb_chatMsgUI, contentArea);
+        textObject.name = $"{contentArea.childCount + 1}_{role}";
+        //var textObject = new GameObject($"{contentArea.childCount + 1}_{role}");
+        //textObject.transform.SetParent(contentArea, false);
+        var textMesh = textObject.GetComponent<MessageColorMode>().messageText;
+        MarkdownRenderer mr = textMesh.gameObject.AddComponent<MarkdownRenderer>();
         mr.RenderSettings.Monospace.UseCustomFont = false;
         mr.RenderSettings.Lists.BulletOffsetPixels = 40;
         textMesh.fontSize = 24;

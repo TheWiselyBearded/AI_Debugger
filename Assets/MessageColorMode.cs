@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class MessageColorMode : MonoBehaviour
 {
@@ -14,6 +15,7 @@ public class MessageColorMode : MonoBehaviour
     [SerializeField]
     public MessageUIProperties senderMessage, receiverMessage;
     private RectTransform rectTransform;
+    public TextMeshProUGUI messageText;
 
     public MessageType messageType;
     public Image image;
@@ -23,12 +25,19 @@ public class MessageColorMode : MonoBehaviour
         messageType = _messageType;
         SetMessageColor();
         // rectTransform.offsetMin = messageType == MessageType.Sender ? senderMessage.offset : receiverMessage.offset;
+        
         // Get the current anchored position
-        Vector2 anchoredPosition = rectTransform.anchoredPosition;
-        anchoredPosition.x += 80f;
+        if (messageType == MessageType.Sender)
+        {
+            Vector2 anchoredPosition = rectTransform.anchoredPosition;
+            anchoredPosition.x += 80f;
+            rectTransform.anchoredPosition = anchoredPosition;
+        }
+    }
 
-        // Set the new anchored position
-        rectTransform.anchoredPosition = anchoredPosition;
+    public void SetMessageText(string text)
+    {
+        messageText.SetText(text);
     }
 
 
@@ -39,6 +48,12 @@ public class MessageColorMode : MonoBehaviour
     }
 
     private void Start() => SetMode(messageType);
+
+    public string debugText;
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.C)) SetMessageText(debugText);
+    }
 }
 
 [System.Serializable]
