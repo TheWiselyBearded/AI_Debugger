@@ -14,7 +14,7 @@ public class MessageColorMode : MonoBehaviour
 
     [SerializeField]
     public MessageUIProperties senderMessage, receiverMessage;
-    private RectTransform rectTransform;
+    public RectTransform rectTransform;
     public TextMeshProUGUI messageText;
 
     public MessageType messageType;
@@ -30,7 +30,7 @@ public class MessageColorMode : MonoBehaviour
         if (messageType == MessageType.Sender)
         {
             Vector2 anchoredPosition = rectTransform.anchoredPosition;
-            anchoredPosition.x += 80f;
+            anchoredPosition.x += 40f;
             rectTransform.anchoredPosition = anchoredPosition;
         }
     }
@@ -44,7 +44,7 @@ public class MessageColorMode : MonoBehaviour
     public void Awake()
     {
         if (image == null) image = GetComponent<Image>();
-        rectTransform = GetComponent<RectTransform>();
+        if (rectTransform == null) rectTransform = GetComponent<RectTransform>();
     }
 
     private void Start() => SetMode(messageType);
