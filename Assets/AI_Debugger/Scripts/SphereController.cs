@@ -80,7 +80,7 @@ public class SphereController : MonoBehaviour
 
     void ScaleOscillation(ModeSettings settings)
     {
-        Debug.Log($"Attempting to scale oscillation, state {isScaling}");
+        //Debug.Log($"Attempting to scale oscillation, state {isScaling}");
         float lerpParameter = Mathf.PingPong(Time.time * settings.oscillationSpeed, 1f);
         float scaleFactor = Mathf.Lerp(settings.minScale, settings.maxScale, lerpParameter);
         transform.localScale = initialScale * scaleFactor;

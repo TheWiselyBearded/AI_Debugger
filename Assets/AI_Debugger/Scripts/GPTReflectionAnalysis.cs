@@ -29,6 +29,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
     public string AssistantID;
     public string AssistantIDGPT3;
     public string AssistantIDGPT4;
+    public bool textToSpeech;
 
     public SphereController sphereController;
 
@@ -91,6 +92,8 @@ public class GPTReflectionAnalysis : MonoBehaviour
     }
 
     public void SubmitChat(string _) => SubmitChat();
+
+    public void ToggleTTS() => textToSpeech = !textToSpeech;
 
     /// <summary>
     /// invoked externally via button press/mapping
@@ -168,7 +171,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
 
         messageID = message.Id;
-        Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");
+        Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");        
 
         if (!gptDebugMessages.ContainsKey(message.Id)) {
             gptDebugMessages.Add(message.Id, message);
@@ -185,6 +188,11 @@ public class GPTReflectionAnalysis : MonoBehaviour
             Debug.Log($"{_message.Id}: {_message.Role}: {_message.PrintContent()}");
             if (!gptDebugMessages.ContainsKey(_message.Id)) {
                 gptDebugMessages.Add(_message.Id, _message);
+                if (textToSpeech)
+                {
+                    Debug.Log("Attempting to invoke speech req");
+                    chatWindow.GenerateSpeech(_message.PrintContent());
+                }
                 UpdateChat($"{_message.Role}: {_message.PrintContent()}", _message.Role == Role.User ? MessageColorMode.MessageType.Sender : MessageColorMode.MessageType.Reciever);
             }
         }

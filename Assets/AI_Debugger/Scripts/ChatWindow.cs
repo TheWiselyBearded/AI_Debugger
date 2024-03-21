@@ -145,7 +145,7 @@ public class ChatWindow : MonoBehaviour
         var assistantMessageContent = AddNewTextMessageContent(msgType == MessageColorMode.MessageType.Sender ? Role.User : Role.Assistant);        
         assistantMessageContent.GetComponent<MarkdownRenderer>().Source = newText;
         scrollView.verticalNormalizedPosition = 0f;
-        if (audioPanel.activeInHierarchy && !newText.Contains("User:")) GenerateSpeech(newText);
+        //if (audioPanel.activeInHierarchy && !newText.Contains("User:")) GenerateSpeech(newText);
     }
 
 
@@ -259,7 +259,9 @@ public class ChatWindow : MonoBehaviour
     {
         text = text.Replace("![Image](output.jpg)", string.Empty);
         var request = new SpeechRequest(text, Model.TTS_1);
+        Debug.Log($"Speech request firing");
         var (clipPath, clip) = await openAI.AudioEndpoint.CreateSpeechAsync(request, lifetimeCancellationTokenSource.Token);
+        Debug.Log($"Speech request fired {clip.name}");
         audioSource.clip = clip;
         audioSource.Play();        
 
@@ -354,7 +356,7 @@ public class ChatWindow : MonoBehaviour
             }
 
             inputField.text = userInput;
-            //UpdateChat(userInput);
+            UpdateChat(userInput, MessageColorMode.MessageType.Sender);
             onSTT?.Invoke(userInput);
             inputField.interactable = true;
         }
