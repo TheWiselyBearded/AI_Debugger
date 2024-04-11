@@ -370,4 +370,6 @@ public class ChatWindow : MonoBehaviour
             recordButton.interactable = true;
         }
     }
+
+
 }

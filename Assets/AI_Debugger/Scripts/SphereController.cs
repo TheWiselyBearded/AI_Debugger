@@ -54,6 +54,7 @@ public class SphereController : MonoBehaviour
         switch (currentMode)
         {
             case SphereMode.Idle:
+                UpdateIdleState();
                 break;
             case SphereMode.Talking:
                 if (!isScaling)
@@ -66,17 +67,11 @@ public class SphereController : MonoBehaviour
         }
     }
 
-    void UpdateTalkingState()
-    {
-        // Execute scaling operation
-        ScaleOscillation(talkingSettings);
-    }
+    // TOOD: Switch these to abstract and extended classes with their own update method
+    void UpdateIdleState() => ScaleOscillation(idleSettings);
+    void UpdateTalkingState() => ScaleOscillation(talkingSettings);
 
-    void UpdateListeningState()
-    {
-        // Execute scaling operation
-        ScaleOscillation(listeningSettings);
-    }
+    void UpdateListeningState() => ScaleOscillation(listeningSettings);
 
     void ScaleOscillation(ModeSettings settings)
     {

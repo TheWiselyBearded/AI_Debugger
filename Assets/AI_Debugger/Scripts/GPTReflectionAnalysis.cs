@@ -23,7 +23,7 @@ using OpenAI.Files;
 
 public class GPTReflectionAnalysis : MonoBehaviour
 {
-    public ChatWindow chatWindow;
+    public DopeCoderController dopeCoderController;
     public ReflectionRuntimeController componentController; // Reference to your component controller
     private OpenAIClient openAI; // OpenAI Client
     public string AssistantID;
@@ -60,8 +60,8 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     protected void Start()
     {
-        chatWindow.inputField.onSubmit.AddListener(SubmitChat);
-        ChatWindow.onSTT += ProcessVoiceInput;
+        dopeCoderController.uiController.inputField.onSubmit.AddListener(dopeCoderController.SubmitChat);
+        SpeechController.onSTT += ProcessVoiceInput;
 
         sphereController.SetMode(SphereController.SphereMode.Idle);
     }
@@ -87,8 +87,8 @@ public class GPTReflectionAnalysis : MonoBehaviour
             WriteConversationToFile();
         }
         gptDebugMessages = null;
-        chatWindow.inputField.onSubmit.RemoveAllListeners();
-        ChatWindow.onSTT -= ProcessVoiceInput;
+        dopeCoderController.uiController.inputField.onSubmit.RemoveAllListeners();
+        SpeechController.onSTT -= ProcessVoiceInput;
     }
 
     public void SubmitChat(string _) => SubmitChat();
@@ -191,7 +191,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
                 if (textToSpeech)
                 {
                     Debug.Log("Attempting to invoke speech req");
-                    chatWindow.GenerateSpeech(_message.PrintContent());
+                    //dopeCoderController.speechController.GenerateSpeech(_message.PrintContent());
                 }
                 UpdateChat($"{_message.Role}: {_message.PrintContent()}", _message.Role == Role.User ? MessageColorMode.MessageType.Sender : MessageColorMode.MessageType.Reciever);
             }
@@ -285,7 +285,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
         } else
         {
             //chatBehaviour.SubmitChat(chatBehaviour.inputField.text);
-            RetrieveAssistant(chatWindow.inputField.text);
+            RetrieveAssistant(dopeCoderController.uiController.inputField.text);
         }
     }
 
@@ -321,7 +321,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     public void UpdateChat(string newText, MessageColorMode.MessageType msgType = MessageColorMode.MessageType.Sender)
     {
-        chatWindow.UpdateChat(newText, msgType);
+        dopeCoderController.uiController.UpdateChat(newText, msgType);
         if (msgType == MessageColorMode.MessageType.Reciever) sphereController.SetMode(SphereController.SphereMode.Talking);
         if (msgType == MessageColorMode.MessageType.Sender) sphereController.SetMode(SphereController.SphereMode.Listening);
 
@@ -341,7 +341,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     private bool ParseKeyword()
     {
-        string input = chatWindow.inputField.text;
+        string input = dopeCoderController.uiController.inputField.text;
         foreach (KeywordEvent k in keywordEvents)
         {
             if (input.Contains(k.Keyword, StringComparison.OrdinalIgnoreCase))
@@ -372,7 +372,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     public void InvokeFunction()
     {
-        string _text = chatWindow.inputField.text;
+        string _text = dopeCoderController.uiController.inputField.text;
         string _func = ParseFunctionName(_text);
         if (!string.IsNullOrEmpty(_func))
         {
@@ -383,7 +383,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     public void ViewClassVariables()
     {
-        string _text = chatWindow.inputField.text;
+        string _text = dopeCoderController.uiController.inputField.text;
         string className = ParseClassName(_text, "view variables of ");
         if (!string.IsNullOrEmpty(className))
         {
@@ -398,7 +398,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     public void ViewVariable()
     {
-        string _text = chatWindow.inputField.text;
+        string _text = dopeCoderController.uiController.inputField.text;
         string variableName = ParseVariableName(_text, "view variable ");
         if (!string.IsNullOrEmpty(variableName))
         {
