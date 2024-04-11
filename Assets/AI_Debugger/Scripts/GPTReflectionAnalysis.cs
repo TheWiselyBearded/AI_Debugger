@@ -450,17 +450,3 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     
 }
-
-
-[System.Serializable]
-public class KeywordEvent {
-    public string Keyword;
-    public string Description;
-    public UnityEngine.Events.UnityEvent keywordEvent;
-}
-
-[Serializable]
-public class FileReference {
-    public string assetPath;
-    public bool markedForRemoval;
-}

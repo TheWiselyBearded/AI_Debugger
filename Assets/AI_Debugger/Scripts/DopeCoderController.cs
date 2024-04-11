@@ -24,6 +24,7 @@ public class DopeCoderController : MonoBehaviour
     [TextArea(3, 10)]
     private string systemPrompt = "You are a helpful AI debugging assistant that helps me interface and understand my code with the Reflection library.\n- If an image is requested then use \"![Image](output.jpg)\" to display it.";
 
+    public KeywordEventManager KeywordEventManager;
     public SphereController sphereController;
     public ReflectionRuntimeController componentController;
     public UI_Controller uiController;
@@ -100,14 +101,20 @@ public class DopeCoderController : MonoBehaviour
         isChatPending = true;
 
 
-        uiController.inputField.ReleaseSelection();
-        uiController.inputField.interactable = false;
-        uiController.submitButton.interactable = false;
+        uiController.ToggleInput(false);
 
         var userMessageContent = uiController.AddNewTextMessageContent(Role.User);
         userMessageContent.text = $"User: {uiController.inputField.text}";
 
-        gptInterfacer.SubmitChatStreamRequst(uiController.inputField.text);
+        if (KeywordEventManager != null && KeywordEventManager.ParseKeyword()) {
+            //componentController.SearchFunctions(ParseFunctionName(chatBehaviour.inputField.text));
+            Debug.Log("Keyword found, invoking event");
+            uiController.ToggleInput(true); // bc chat request is async in else block, we toggle ui back here for local commands
+        }
+        else {
+            //chatBehaviour.SubmitChat(chatBehaviour.inputField.text);
+            gptInterfacer.SubmitChatStreamRequst(uiController.inputField.text);
+        }        
         uiController.inputField.text = string.Empty;
     }
 

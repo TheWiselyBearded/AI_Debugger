@@ -41,7 +41,12 @@ public class UI_Controller : MonoBehaviour
     }
 
 
-
+    public void ToggleInput(bool status)
+    {
+        inputField.ReleaseSelection();
+        inputField.interactable = status;
+        submitButton.interactable = status;
+    }
     
 
     public void UpdateChat(string newText, MessageColorMode.MessageType msgType)
@@ -71,4 +76,6 @@ public class UI_Controller : MonoBehaviour
         textMesh.enableWordWrapping = true;
         return textMesh;
     }
+
+
 }

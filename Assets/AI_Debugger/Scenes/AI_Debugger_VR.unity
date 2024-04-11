@@ -2128,6 +2128,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1992401236529381659, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
+      propertyPath: KeywordEventManager
+      value: 
+      objectReference: {fileID: 600186464452012585}
     - target: {fileID: 2047701017085433444, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
       propertyPath: m_LocalPosition.x
       value: -1
@@ -2184,11 +2188,117 @@ PrefabInstance:
       propertyPath: m_AnchorMax.y
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    - target: {fileID: 7220505262597852437, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7220505262597852437, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7220505262597852437, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7220505262597852437, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents:
+    - {fileID: 296095068867013582, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4855752955052322799, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 600186464452012585}
   m_SourcePrefab: {fileID: 100100000, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
+--- !u!1 &600186464452012584 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4855752955052322799, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
+  m_PrefabInstance: {fileID: 600186464452012583}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &600186464452012585
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 600186464452012584}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ac28e143a359b54888c54c4277970f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  keywordEvents:
+  - Keyword: Invoke function
+    Description: call a specific function
+    keywordEvent:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 600186464452012585}
+          m_TargetAssemblyTypeName: KeywordEventManager, Assembly-CSharp
+          m_MethodName: InvokeFunction
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - Keyword: view variables of
+    Description: view varaibles of a specific class
+    keywordEvent:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 600186464452012585}
+          m_TargetAssemblyTypeName: KeywordEventManager, Assembly-CSharp
+          m_MethodName: ViewClassVariables
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - Keyword: view variable
+    Description: view a specific variable property
+    keywordEvent:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 600186464452012585}
+          m_TargetAssemblyTypeName: KeywordEventManager, Assembly-CSharp
+          m_MethodName: ViewVariable
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - Keyword: Help
+    Description: list all keyword->action options
+    keywordEvent:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 600186464452012585}
+          m_TargetAssemblyTypeName: KeywordEventManager, Assembly-CSharp
+          m_MethodName: GetHelpText
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
