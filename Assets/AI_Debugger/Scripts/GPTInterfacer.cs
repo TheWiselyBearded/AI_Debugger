@@ -50,8 +50,7 @@ public class GPTInterfacer : MonoBehaviour
 
     protected void Start()
     {
-        DopeCoderController.Instance.uiController.inputField.onSubmit.AddListener(DopeCoderController.Instance.SubmitChat);
-        SpeechController.onSTT += ProcessVoiceInput;
+        DopeCoderController.Instance.uiController.inputField.onSubmit.AddListener(DopeCoderController.Instance.SubmitChat);      
     }
 
     protected void OnDestroy()
@@ -65,7 +64,6 @@ public class GPTInterfacer : MonoBehaviour
         lifetimeCancellationTokenSource.Dispose();
         lifetimeCancellationTokenSource = null;
 
-        SpeechController.onSTT -= ProcessVoiceInput;
     }
 
 
@@ -238,7 +236,6 @@ public class GPTInterfacer : MonoBehaviour
         }
     }
 
-    public void ProcessVoiceInput(string voiceInput) => SubmitChatStreamRequst(voiceInput);
 
     public string FormatDataForGPT(Dictionary<string, ClassInfo> classCollection)
     {

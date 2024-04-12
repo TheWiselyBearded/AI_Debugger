@@ -16,6 +16,8 @@ public class UI_Controller : MonoBehaviour
 
     [SerializeField]
     public Button recordButton;
+    public GameObject startRecordingIcon;
+    public GameObject stopRecordingIcon;
 
     [SerializeField]
     public TMP_InputField inputField;
@@ -48,6 +50,18 @@ public class UI_Controller : MonoBehaviour
         submitButton.interactable = status;
     }
     
+    public void ToggleMicIcon()
+    {
+        if (startRecordingIcon.activeSelf)
+        {
+            startRecordingIcon.SetActive(false);
+            stopRecordingIcon.SetActive(true);
+        } else
+        {
+            startRecordingIcon.SetActive(true);
+            stopRecordingIcon.SetActive(false);
+        }
+    }
 
     public void UpdateChat(string newText, MessageColorMode.MessageType msgType)
     {

@@ -79,7 +79,11 @@ public class DopeCoderController : MonoBehaviour
 
     }
 
-    public void UpdateChatSTT(string text) => uiController.UpdateChat(text, MessageColorMode.MessageType.Sender);
+    public void UpdateChatSTT(string text)
+    {
+        uiController.UpdateChat(text, MessageColorMode.MessageType.Sender);
+        gptInterfacer.SubmitChatStreamRequst(text);
+    }
 
     private void OnDestroy()
     {
@@ -93,8 +97,9 @@ public class DopeCoderController : MonoBehaviour
     /// invoked via gui elements/event maps
     /// </summary>
     /// <param name="_">user input query via unity input field</param>
-    public void SubmitChat(string _) => SubmitChat();
-    private async void SubmitChat()
+    public void SubmitChat(string _) => SubmitChatRequest();
+    public void SubmitChat() => SubmitChatRequest();
+    private async void SubmitChatRequest()
     {
         sphereController.SetMode(SphereController.SphereMode.Listening);
         if (isChatPending || string.IsNullOrWhiteSpace(uiController.inputField.text)) { return; }
