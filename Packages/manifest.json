@@ -2,7 +2,7 @@
   "dependencies": {
     "com.dbrizov.naughtyattributes": "https://github.com/dbrizov/NaughtyAttributes.git#upm",
     "com.jimmycushnie.jimmysunityutilities": "https://github.com/JimmyCushnie/JimmysUnityUtilities.git",
-    "com.openai.unity": "7.2.1",
+    "com.openai.unity": "7.7.9",
     "com.unity.collab-proxy": "2.2.0",
     "com.unity.feature.development": "1.0.1",
     "com.unity.textmeshpro": "3.0.6",
