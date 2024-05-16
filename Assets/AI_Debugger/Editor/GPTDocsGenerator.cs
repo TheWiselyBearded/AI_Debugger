@@ -6,6 +6,7 @@ using iTextSharp.text;
 using iTextSharp.text.pdf;
 using System;
 using System.Threading.Tasks;
+using System.IO.Compression;
 
 public class GPTDocsGenerator : EditorWindow {
     [MenuItem("Tools/DopeCoder/Scan Codebase")]
@@ -15,9 +16,12 @@ public class GPTDocsGenerator : EditorWindow {
 
     private string inputDirectory = "Assets"; // Default input directory is the "Assets" folder
     private string outputFileName = "GeneratedPDF.pdf"; // Default output PDF file name
+    private string outputZipFileName = "Codebase.zip"; // Default output zip file name
     private string outputFolderPath; // Output folder path
     private float progress = 0;
     private bool isGenerating = false;
+    private bool createZip = false; // Toggle option for creating zip file
+    private bool includeAllFilesInZip = false; // Toggle option for including all files in the zip
 
     private void OnEnable() {
         // Determine the script's directory
@@ -40,22 +44,30 @@ public class GPTDocsGenerator : EditorWindow {
 
         inputDirectory = EditorGUILayout.TextField("Input Directory", inputDirectory);
         outputFileName = EditorGUILayout.TextField("Output PDF File", outputFileName);
+        outputZipFileName = EditorGUILayout.TextField("Output Zip File", outputZipFileName);
+
+        GUILayout.Space(10);
+
+        createZip = EditorGUILayout.Toggle("Create Zip File Instead", createZip);
+        if (createZip) {
+            includeAllFilesInZip = EditorGUILayout.Toggle("Include All Files in Zip", includeAllFilesInZip);
+        }
 
         GUILayout.Space(20);
 
-        if (GUILayout.Button("Generate PDF")) {
-            GeneratePDFAsync();
+        if (GUILayout.Button("Generate")) {
+            GenerateAsync();
         }
 
         if (isGenerating) {
             EditorGUILayout.LabelField("Progress:", EditorStyles.boldLabel);
             Rect rect = EditorGUILayout.GetControlRect(false, 20);
-            EditorGUI.ProgressBar(rect, progress, "Generating PDF");
+            EditorGUI.ProgressBar(rect, progress, "Processing...");
             GUILayout.Space(20);
         }
     }
 
-    private async void GeneratePDFAsync() {
+    private async void GenerateAsync() {
         isGenerating = true;
 
         var progressIndicator = new Progress<float>(value => {
@@ -64,12 +76,17 @@ public class GPTDocsGenerator : EditorWindow {
         });
 
         await Task.Run(() => {
-            GeneratePDF(progressIndicator);
+            if (createZip) {
+                CreateZip(progressIndicator);
+            } else {
+                GeneratePDF(progressIndicator);
+            }
         });
 
         isGenerating = false;
         progress = 0;
-        EditorUtility.DisplayDialog("PDF Generated", "PDF file created successfully!", "OK");
+        string message = createZip ? "Zip file created successfully!" : "PDF file created successfully!";
+        EditorUtility.DisplayDialog("Generation Complete", message, "OK");
         Repaint();
     }
 
@@ -114,6 +131,40 @@ public class GPTDocsGenerator : EditorWindow {
 
         foreach (string subDirectory in subDirectories) {
             AppendCSharpFilesToPDF(doc, subDirectory, progress);
+        }
+    }
+
+    private void CreateZip(IProgress<float> progress) {
+        try {
+            string outputPath = Path.Combine(outputFolderPath, outputZipFileName);
+
+            if (File.Exists(outputPath)) {
+                File.Delete(outputPath);
+            }
+
+            if (includeAllFilesInZip) {
+                ZipFile.CreateFromDirectory(inputDirectory, outputPath);
+            } else {
+                using (ZipArchive zipArchive = ZipFile.Open(outputPath, ZipArchiveMode.Create)) {
+                    AddFilesToZip(inputDirectory, zipArchive, "*.cs");
+                }
+            }
+
+            progress.Report(1.0f); // Report 100% progress
+        } catch (Exception e) {
+            Debug.LogError("Error: " + e.Message);
+        }
+    }
+
+    private void AddFilesToZip(string directory, ZipArchive zipArchive, string searchPattern) {
+        string[] files = Directory.GetFiles(directory, searchPattern);
+        foreach (string file in files) {
+            zipArchive.CreateEntryFromFile(file, Path.GetRelativePath(inputDirectory, file));
+        }
+
+        string[] subDirectories = Directory.GetDirectories(directory);
+        foreach (string subDirectory in subDirectories) {
+            AddFilesToZip(subDirectory, zipArchive, searchPattern);
         }
     }
 }
