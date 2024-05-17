@@ -29,11 +29,16 @@ public class GPTAssistantBuilder : EditorWindow {
     private bool isCreatingOrUpdating = false;
 
     private Vector2 scrollPosition; // Variable to manage scroll position
+    private Vector2 fileScrollPosition; // Variable to manage scroll position for files
+
+
     private List<string> assistantsToDelete = new List<string>(); // Track assistants marked for deletion
     private string selectedAssistantToLoad; // Track assistant selected to load
 
 
     private bool showAssistantsList = false; // Toggle for showing/hiding assistants list
+    private bool showFileList = false; // Variable to manage the visibility of the file list
+
     private List<AssistantResponse> assistantsList = new List<AssistantResponse>();
 
 
@@ -61,47 +66,55 @@ public class GPTAssistantBuilder : EditorWindow {
 
         GUILayout.Space(10);
 
-        EditorGUILayout.LabelField("Drag and drop files here:");
+        // Collapsible section for uploading and listing local files
+        showFileList = EditorGUILayout.Foldout(showFileList, "Local Files");
+        if (showFileList) {
+            // Drop area for uploading files
+            EditorGUILayout.LabelField("Drag and drop files here:");
+            Rect dropArea = GUILayoutUtility.GetRect(0f, 50f, GUILayout.ExpandWidth(true));
+            GUI.Box(dropArea, "Drag and drop files here");
+            UnityEngine.Event currentEvent = UnityEngine.Event.current;
 
-        Rect dropArea = GUILayoutUtility.GetRect(0f, 50f, GUILayout.ExpandWidth(true));
-        GUI.Box(dropArea, "Drag and drop files here");
-        UnityEngine.Event currentEvent = UnityEngine.Event.current;
+            if (currentEvent.type == EventType.DragUpdated) {
+                DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
+            }
 
-        if (currentEvent.type == EventType.DragUpdated) {
-            DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
-        }
+            if (currentEvent.type == EventType.DragPerform) {
+                DragAndDrop.AcceptDrag();
+                feedbackTimer = Time.realtimeSinceStartup;
 
-        if (currentEvent.type == EventType.DragPerform) {
-            DragAndDrop.AcceptDrag();
-            feedbackTimer = Time.realtimeSinceStartup;
+                foreach (UnityEngine.Object draggedObject in DragAndDrop.objectReferences) {
+                    string assetPath = AssetDatabase.GetAssetPath(draggedObject);
 
-            foreach (UnityEngine.Object draggedObject in DragAndDrop.objectReferences) {
-                string assetPath = AssetDatabase.GetAssetPath(draggedObject);
-
-                if (!files.Any(file => file.assetPath == assetPath)) {
-                    Array.Resize(ref files, files.Length + 1);
-                    files[files.Length - 1] = new FileReference { assetPath = assetPath };
+                    if (!files.Any(file => file.assetPath == assetPath)) {
+                        Array.Resize(ref files, files.Length + 1);
+                        files[files.Length - 1] = new FileReference { assetPath = assetPath };
+                    }
                 }
             }
-        }
 
-        if (Time.realtimeSinceStartup - feedbackTimer < feedbackDuration) {
-            EditorGUI.DrawRect(dropArea, new Color(0.5f, 1f, 0.5f, 0.5f));
-        }
-
-        GUILayout.Space(20);
-
-        for (int i = 0; i < files.Length; i++) {
-            EditorGUILayout.BeginHorizontal();
-
-            files[i].markedForRemoval = EditorGUILayout.Toggle(files[i].markedForRemoval, GUILayout.Width(20));
-            EditorGUILayout.LabelField("Added File:", AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(files[i].assetPath).name);
-
-            if (GUILayout.Button("Remove", GUILayout.Width(80))) {
-                RemoveFileAtIndex(i);
+            if (Time.realtimeSinceStartup - feedbackTimer < feedbackDuration) {
+                EditorGUI.DrawRect(dropArea, new Color(0.5f, 1f, 0.5f, 0.5f));
             }
 
-            EditorGUILayout.EndHorizontal();
+            GUILayout.Space(10);
+
+            // Scrollable list of local files
+            fileScrollPosition = EditorGUILayout.BeginScrollView(fileScrollPosition, GUILayout.Height(200)); // Set a height for the scroll view
+            for (int i = 0; i < files.Length; i++) {
+                EditorGUILayout.BeginHorizontal();
+
+                files[i].markedForRemoval = EditorGUILayout.Toggle(files[i].markedForRemoval, GUILayout.Width(20));
+                EditorGUILayout.LabelField("Added File:", AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(files[i].assetPath).name);
+
+                if (GUILayout.Button("Remove", GUILayout.Width(80))) {
+                    RemoveFileAtIndex(i);
+                }
+
+                EditorGUILayout.EndHorizontal();
+                GUILayout.Space(10);
+            }
+            EditorGUILayout.EndScrollView();
         }
 
         GUILayout.Space(20);
@@ -109,6 +122,7 @@ public class GPTAssistantBuilder : EditorWindow {
         if (GUILayout.Button("Save Files to EditorPrefs")) {
             SaveFilesToEditorPrefs();
         }
+
 
         GUILayout.Space(20);
 
