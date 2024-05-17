@@ -35,11 +35,18 @@ public class GPTAssistantBuilder : EditorWindow {
     private List<string> assistantsToDelete = new List<string>(); // Track assistants marked for deletion
     private string selectedAssistantToLoad; // Track assistant selected to load
 
+    private bool showAssistantFiles = true; // Variable to manage the visibility of the files list
 
     private bool showAssistantsList = false; // Toggle for showing/hiding assistants list
     private bool showFileList = false; // Variable to manage the visibility of the file list
 
     private List<AssistantResponse> assistantsList = new List<AssistantResponse>();
+
+    private AssistantResponse assignedAssistant; // Store the assigned assistant details
+    private List<AssistantFileResponse> assistantFiles = new List<AssistantFileResponse>(); // Store files assigned to the assistant
+
+    private Vector2 assistantFilesScrollPosition; // Scroll position for assistant files list
+
 
 
     [MenuItem("Tools/DopeCoder/GPT Assistant Builder")]
@@ -51,9 +58,9 @@ public class GPTAssistantBuilder : EditorWindow {
         LoadFilesFromEditorPrefs();
         LoadAssistantId();
         if (!string.IsNullOrEmpty(assistantId)) {
-            DisplayAssistantDetails(assistantId);
+            LoadAssistant(assistantId); // Automatically load the assigned assistant
         } else {
-            ListAssistants();
+            ListAssistantsAsync();
         }
     }
 
@@ -65,6 +72,28 @@ public class GPTAssistantBuilder : EditorWindow {
         GUILayout.Label("GPT Assistant Builder", EditorStyles.boldLabel);
 
         GUILayout.Space(10);
+
+        // Section to display assigned assistant details
+        if (assignedAssistant != null) {
+            GUILayout.Label($"Assigned Assistant: {assignedAssistant.Name} ({assignedAssistant.Id})", EditorStyles.boldLabel);
+
+            // Collapsible section for listing files assigned to the assistant
+            showAssistantFiles = EditorGUILayout.Foldout(showAssistantFiles, "Files");
+            if (showAssistantFiles) {
+                assistantFilesScrollPosition = EditorGUILayout.BeginScrollView(assistantFilesScrollPosition, GUILayout.Height(100));
+                foreach (var file in assistantFiles) {
+                    EditorGUILayout.LabelField(file.Id);
+                }
+                EditorGUILayout.EndScrollView();
+            }
+
+            GUILayout.Space(10);
+
+            // Unload button
+            if (GUILayout.Button("Unload Assistant")) {
+                UnloadAssistant();
+            }
+        }
 
         // Collapsible section for uploading and listing local files
         showFileList = EditorGUILayout.Foldout(showFileList, "Local Files");
@@ -159,12 +188,16 @@ public class GPTAssistantBuilder : EditorWindow {
                 // Display assistant details
                 EditorGUILayout.LabelField($"{assistant.Name}: {assistant.Id}");
 
-                // Load button
-                GUI.enabled = string.IsNullOrEmpty(assistantId) || assistant.Id == assistantId;
-                if (GUILayout.Button("Load", GUILayout.Width(50))) {
-                    LoadAssistant(assistant.Id);
+                // Load/Unload button
+                if (assistant.Id == assistantId) {
+                    if (GUILayout.Button("Unload", GUILayout.Width(60))) {
+                        UnloadAssistant();
+                    }
+                } else {
+                    if (GUILayout.Button("Load", GUILayout.Width(50))) {
+                        LoadAssistant(assistant.Id);
+                    }
                 }
-                GUI.enabled = true;
 
                 // Delete button
                 if (GUILayout.Button("Delete", GUILayout.Width(60))) {
@@ -177,12 +210,18 @@ public class GPTAssistantBuilder : EditorWindow {
             EditorGUILayout.EndScrollView();
         }
 
-        if (isCreatingOrUpdating) {
-            GUILayout.Space(20);
-            EditorGUILayout.LabelField("Processing...", EditorStyles.boldLabel);
+        // Section to select and upload a file to the assistant
+        if (assignedAssistant != null) {
+            GUILayout.Label("Upload File to Assistant", EditorStyles.boldLabel);
+            if (GUILayout.Button("Select File to Upload")) {
+                string path = EditorUtility.OpenFilePanel("Select File to Upload", "", "");
+                if (!string.IsNullOrEmpty(path)) {
+                    UploadFileToAssistantAsync(path);
+                }
+            }
+
+            GUILayout.Space(10);
         }
-
-
 
         if (isCreatingOrUpdating) {
             GUILayout.Space(20);
@@ -250,15 +289,6 @@ public class GPTAssistantBuilder : EditorWindow {
         }
     }
 
-    public async void ListAssistantsAsync() {
-        var api = new OpenAIClient();
-        var assistantsListResponse = await api.AssistantsEndpoint.ListAssistantsAsync();
-
-        assistantsList = assistantsListResponse.Items.ToList();
-        showAssistantsList = true; // Show the list after fetching
-        Repaint();
-    }
-
     private async void DeleteSelectedAssistantsAsync() {
         var api = new OpenAIClient();
         foreach (var assistantId in assistantsToDelete) {
@@ -280,12 +310,6 @@ public class GPTAssistantBuilder : EditorWindow {
         }
     }
 
-    private void LoadAssistant(string assistantIdToLoad) {
-        assistantId = assistantIdToLoad;
-        EditorPrefs.SetString("AssistantId", assistantId);
-        DisplayAssistantDetails(assistantId);
-        Debug.Log($"Loaded assistant {assistantId}");
-    }
 
 
     private void LoadSelectedAssistant() {
@@ -322,6 +346,35 @@ public class GPTAssistantBuilder : EditorWindow {
         isCreatingOrUpdating = false;
         Repaint();
     }
+
+
+    private async void LoadAssistant(string assistantIdToLoad) {
+        var api = new OpenAIClient();
+        assignedAssistant = await api.AssistantsEndpoint.RetrieveAssistantAsync(assistantIdToLoad);
+        var filesListResponse = await api.AssistantsEndpoint.ListFilesAsync(assistantIdToLoad);
+        assistantFiles = filesListResponse.Items.ToList();
+        assistantId = assistantIdToLoad;
+        EditorPrefs.SetString("AssistantId", assistantId);
+        Debug.Log($"Loaded assistant {assistantId}");
+        Repaint();
+    }
+
+    private async void UploadFileToAssistantAsync(string filePath) {
+        var api = new OpenAIClient();
+        var fileData = await api.FilesEndpoint.UploadFileAsync(filePath, "assistants");
+        var assistantFile = await api.AssistantsEndpoint.AttachFileAsync(assignedAssistant.Id, new FileResponse(fileData.Id, fileData.Object, fileData.Size, fileData.CreatedUnixTimeSeconds, fileData.FileName, fileData.Purpose, fileData.Status));
+        Debug.Log($"Attached file {fileData.Id} to assistant {assignedAssistant.Id}");
+        LoadAssistant(assignedAssistant.Id); // Refresh the assistant details and files
+    }
+
+    private async void ListAssistantsAsync() {
+        var api = new OpenAIClient();
+        var assistantsListResponse = await api.AssistantsEndpoint.ListAssistantsAsync();
+        assistantsList = assistantsListResponse.Items.ToList();
+        showAssistantsList = true; // Show the list after fetching
+        Repaint();
+    }
+
 
     public async Task<AssistantResponse> RetrieveAssistantAsync() {
         var api = new OpenAIClient();
@@ -363,4 +416,14 @@ public class GPTAssistantBuilder : EditorWindow {
             await Task.Delay(1000); // Delay for 1 second
         }
     }
+
+    private void UnloadAssistant() {
+        assignedAssistant = null;
+        assistantFiles.Clear();
+        assistantId = string.Empty;
+        EditorPrefs.SetString("AssistantId", assistantId);
+        Debug.Log("Unloaded assistant");
+        Repaint();
+    }
+
 }
