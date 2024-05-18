@@ -47,6 +47,10 @@ public class GPTAssistantBuilder : EditorWindow {
 
     private Vector2 assistantFilesScrollPosition; // Scroll position for assistant files list
 
+    private List<VectorStoreData> vectorStores = new List<VectorStoreData>();
+    private Vector2 vectorStoreScrollPosition; // Scroll position for vector stores list
+    private bool showVectorStores = false; // Variable to manage the visibility of the vector stores list
+
 
 
     [MenuItem("Tools/DopeCoder/GPT Assistant Builder")]
@@ -54,15 +58,20 @@ public class GPTAssistantBuilder : EditorWindow {
         GetWindow<GPTAssistantBuilder>("GPT Assistant Builder");
     }
 
+    private GPTUtilities gptUtilities;
+
     private void OnEnable() {
         LoadFilesFromEditorPrefs();
         LoadAssistantId();
+        gptUtilities = new GPTUtilities();
+        gptUtilities.Init();
         if (!string.IsNullOrEmpty(assistantId)) {
             LoadAssistant(assistantId); // Automatically load the assigned assistant
         } else {
             ListAssistantsAsync();
         }
     }
+
 
     private void OnDisable() {
         SaveFilesToEditorPrefs();
@@ -76,6 +85,16 @@ public class GPTAssistantBuilder : EditorWindow {
         // Section to display assigned assistant details
         if (assignedAssistant != null) {
             GUILayout.Label($"Assigned Assistant: {assignedAssistant.Name} ({assignedAssistant.Id})", EditorStyles.boldLabel);
+
+            // Collapsible section for listing vector stores
+            showVectorStores = EditorGUILayout.Foldout(showVectorStores, "Vector Stores");
+            if (showVectorStores) {
+                vectorStoreScrollPosition = EditorGUILayout.BeginScrollView(vectorStoreScrollPosition, GUILayout.Height(100));
+                foreach (var store in vectorStores) {
+                    EditorGUILayout.LabelField($"ID: {store.Id}, Name: {store.Name}, Created At: {store.CreatedAt}");
+                }
+                EditorGUILayout.EndScrollView();
+            }
 
             // Collapsible section for listing files assigned to the assistant
             showAssistantFiles = EditorGUILayout.Foldout(showAssistantFiles, "Files");
@@ -93,6 +112,24 @@ public class GPTAssistantBuilder : EditorWindow {
             if (GUILayout.Button("Unload Assistant")) {
                 UnloadAssistant();
             }
+        }
+
+        // Section to select and upload a file to the assistant
+        if (assignedAssistant != null) {
+            GUILayout.Label("Upload File to Assistant", EditorStyles.boldLabel);
+            if (GUILayout.Button("Select File to Upload")) {
+                string path = EditorUtility.OpenFilePanel("Select File to Upload", "", "");
+                if (!string.IsNullOrEmpty(path)) {
+                    UploadFileToAssistantAsync(path);
+                }
+            }
+
+            GUILayout.Space(10);
+        }
+
+        if (isCreatingOrUpdating) {
+            GUILayout.Space(20);
+            EditorGUILayout.LabelField("Processing...", EditorStyles.boldLabel);
         }
 
         // Collapsible section for uploading and listing local files
@@ -229,6 +266,23 @@ public class GPTAssistantBuilder : EditorWindow {
         }
     }
 
+    private async void UploadFileToAssistantAsync(string filePath) {
+        if (string.IsNullOrEmpty(assignedAssistant.Id) || !vectorStores.Any()) {
+            Debug.LogError("No assistant assigned or no vector stores available.");
+            return;
+        }
+
+        try {
+            string vectorStoreId = vectorStores.First().Id;
+            await gptUtilities.CreateAndUploadVectorStoreFile(vectorStoreId, filePath);
+            Debug.Log($"File uploaded and associated with vector store ID {vectorStoreId}.");
+            LoadAssistant(assignedAssistant.Id); // Refresh the assistant details and files
+        } catch (Exception e) {
+            Debug.LogError($"Failed to upload file: {e.Message}");
+        }
+    }
+
+
     private void RemoveFileAtIndex(int index) {
         if (index >= 0 && index < files.Length) {
             FileReference[] newFiles = new FileReference[files.Length - 1];
@@ -356,16 +410,29 @@ public class GPTAssistantBuilder : EditorWindow {
         assistantId = assistantIdToLoad;
         EditorPrefs.SetString("AssistantId", assistantId);
         Debug.Log($"Loaded assistant {assistantId}");
+
+        // Retrieve vector stores for the assistant
+        await ListVectorStoresForAssistantAsync();
+
         Repaint();
     }
 
-    private async void UploadFileToAssistantAsync(string filePath) {
-        var api = new OpenAIClient();
-        var fileData = await api.FilesEndpoint.UploadFileAsync(filePath, "assistants");
-        var assistantFile = await api.AssistantsEndpoint.AttachFileAsync(assignedAssistant.Id, new FileResponse(fileData.Id, fileData.Object, fileData.Size, fileData.CreatedUnixTimeSeconds, fileData.FileName, fileData.Purpose, fileData.Status));
-        Debug.Log($"Attached file {fileData.Id} to assistant {assignedAssistant.Id}");
-        LoadAssistant(assignedAssistant.Id); // Refresh the assistant details and files
+    private async Task ListVectorStoresForAssistantAsync() {
+        try {
+            var response = await gptUtilities.vectorStoreAPI.GetVectorStoresAsync();
+            vectorStores = response.Data;
+            if (vectorStores.Any()) {
+                Debug.Log("Vector stores retrieved successfully.");
+            } else {
+                Debug.Log("No vector stores found for the assistant.");
+            }
+            Repaint();
+        } catch (Exception e) {
+            Debug.LogError($"Failed to retrieve vector stores: {e.Message}");
+        }
     }
+
+
 
     private async void ListAssistantsAsync() {
         var api = new OpenAIClient();

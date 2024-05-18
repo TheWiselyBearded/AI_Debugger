@@ -13,6 +13,10 @@ public class GPTUtilities : MonoBehaviour {
     public OpenAIConfiguration openAIConfiguration;
 
     private void Awake() {
+        Init();
+    }
+
+    public void Init() {
         openAIConfiguration = Resources.Load<OpenAIConfiguration>("OpenAIConfiguration");
         if (openAIConfiguration == null) {
             Debug.LogError("OpenAIConfiguration asset not found in Resources.");
