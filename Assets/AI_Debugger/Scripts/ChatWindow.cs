@@ -25,6 +25,8 @@ using OpenAI;
 
 public class ChatWindow : MonoBehaviour
 {
+    public GameObject pfb_chatMsgUI;
+
     [SerializeField]
     public GameObject audioPanel;
 
@@ -137,13 +139,13 @@ public class ChatWindow : MonoBehaviour
 
     private static bool isChatPending;
 
-    public void UpdateChat(string newText)
+    public void UpdateChat(string newText, MessageColorMode.MessageType msgType)
     {        
         //inputField.text = newText;
-        var assistantMessageContent = AddNewTextMessageContent(Role.Assistant);        
+        var assistantMessageContent = AddNewTextMessageContent(msgType == MessageColorMode.MessageType.Sender ? Role.User : Role.Assistant);        
         assistantMessageContent.GetComponent<MarkdownRenderer>().Source = newText;
         scrollView.verticalNormalizedPosition = 0f;
-        if (audioPanel.activeInHierarchy && !newText.Contains("User:")) GenerateSpeech(newText);
+        //if (audioPanel.activeInHierarchy && !newText.Contains("User:")) GenerateSpeech(newText);
     }
 
 
@@ -257,7 +259,9 @@ public class ChatWindow : MonoBehaviour
     {
         text = text.Replace("![Image](output.jpg)", string.Empty);
         var request = new SpeechRequest(text, Model.TTS_1);
+        Debug.Log($"Speech request firing");
         var (clipPath, clip) = await openAI.AudioEndpoint.CreateSpeechAsync(request, lifetimeCancellationTokenSource.Token);
+        Debug.Log($"Speech request fired {clip.name}");
         audioSource.clip = clip;
         audioSource.Play();        
 
@@ -269,10 +273,16 @@ public class ChatWindow : MonoBehaviour
 
     public TextMeshProUGUI AddNewTextMessageContent(Role role)
     {
-        var textObject = new GameObject($"{contentArea.childCount + 1}_{role}");
-        textObject.transform.SetParent(contentArea, false);
-        var textMesh = textObject.AddComponent<TextMeshProUGUI>();
-        MarkdownRenderer mr = textObject.AddComponent<MarkdownRenderer>();
+        var textObject = Instantiate(pfb_chatMsgUI, contentArea);
+        textObject.name = $"{contentArea.childCount + 1}_{role}";
+        //var textObject = new GameObject($"{contentArea.childCount + 1}_{role}");
+        //textObject.transform.SetParent(contentArea, false);
+        var msgColorMode = textObject.GetComponent<MessageColorMode>();
+        if (role == Role.User) msgColorMode.SetMode(MessageColorMode.MessageType.Sender);
+        else msgColorMode.SetMode(MessageColorMode.MessageType.Reciever);
+
+        var textMesh = msgColorMode.messageText;
+        MarkdownRenderer mr = textMesh.gameObject.AddComponent<MarkdownRenderer>();
         mr.RenderSettings.Monospace.UseCustomFont = false;
         mr.RenderSettings.Lists.BulletOffsetPixels = 40;
         textMesh.fontSize = 24;
@@ -346,7 +356,7 @@ public class ChatWindow : MonoBehaviour
             }
 
             inputField.text = userInput;
-            //UpdateChat(userInput);
+            UpdateChat(userInput, MessageColorMode.MessageType.Sender);
             onSTT?.Invoke(userInput);
             inputField.interactable = true;
         }
@@ -360,4 +370,6 @@ public class ChatWindow : MonoBehaviour
             recordButton.interactable = true;
         }
     }
+
+
 }

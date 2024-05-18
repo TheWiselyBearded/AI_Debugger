@@ -23,12 +23,15 @@ using OpenAI.Files;
 
 public class GPTReflectionAnalysis : MonoBehaviour
 {
-    public ChatWindow chatWindow;
+    public DopeCoderController dopeCoderController;
     public ReflectionRuntimeController componentController; // Reference to your component controller
     private OpenAIClient openAI; // OpenAI Client
     public string AssistantID;
     public string AssistantIDGPT3;
     public string AssistantIDGPT4;
+    public bool textToSpeech;
+
+    public SphereController sphereController;
 
     public Dictionary<string, MessageResponse> gptDebugMessages;
 
@@ -57,8 +60,10 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     protected void Start()
     {
-        chatWindow.inputField.onSubmit.AddListener(SubmitChat);
-        ChatWindow.onSTT += ProcessVoiceInput;
+        dopeCoderController.uiController.inputField.onSubmit.AddListener(dopeCoderController.SubmitChat);
+        SpeechController.onSTT += ProcessVoiceInput;
+
+        sphereController.SetMode(SphereController.SphereMode.Idle);
     }
 
     public void ProcessVoiceInput(string voiceInput) => RetrieveAssistant(voiceInput);
@@ -82,11 +87,13 @@ public class GPTReflectionAnalysis : MonoBehaviour
             WriteConversationToFile();
         }
         gptDebugMessages = null;
-        chatWindow.inputField.onSubmit.RemoveAllListeners();
-        ChatWindow.onSTT -= ProcessVoiceInput;
+        dopeCoderController.uiController.inputField.onSubmit.RemoveAllListeners();
+        SpeechController.onSTT -= ProcessVoiceInput;
     }
 
     public void SubmitChat(string _) => SubmitChat();
+
+    public void ToggleTTS() => textToSpeech = !textToSpeech;
 
     /// <summary>
     /// invoked externally via button press/mapping
@@ -113,6 +120,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
 
     private async void RetrieveAssistant(string msg = "What exactly is all the code doing around me and what relationships do the scripts have with one another?") {
+        sphereController.SetMode(SphereController.SphereMode.Listening);
         isChatPending = true;
         var assistant = await openAI.AssistantsEndpoint.RetrieveAssistantAsync(AssistantID);
         Debug.Log($"{assistant} -> {assistant.CreatedAt}");
@@ -163,7 +171,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
 
         messageID = message.Id;
-        Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");
+        Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");        
 
         if (!gptDebugMessages.ContainsKey(message.Id)) {
             gptDebugMessages.Add(message.Id, message);
@@ -180,7 +188,12 @@ public class GPTReflectionAnalysis : MonoBehaviour
             Debug.Log($"{_message.Id}: {_message.Role}: {_message.PrintContent()}");
             if (!gptDebugMessages.ContainsKey(_message.Id)) {
                 gptDebugMessages.Add(_message.Id, _message);
-                UpdateChat($"{_message.Role}: {_message.PrintContent()}");
+                if (textToSpeech)
+                {
+                    Debug.Log("Attempting to invoke speech req");
+                    //dopeCoderController.speechController.GenerateSpeech(_message.PrintContent());
+                }
+                UpdateChat($"{_message.Role}: {_message.PrintContent()}", _message.Role == Role.User ? MessageColorMode.MessageType.Sender : MessageColorMode.MessageType.Reciever);
             }
         }
     }
@@ -272,7 +285,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
         } else
         {
             //chatBehaviour.SubmitChat(chatBehaviour.inputField.text);
-            RetrieveAssistant(chatWindow.inputField.text);
+            RetrieveAssistant(dopeCoderController.uiController.inputField.text);
         }
     }
 
@@ -306,7 +319,13 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
 
 
-    public void UpdateChat(string newText) => chatWindow.UpdateChat(newText);
+    public void UpdateChat(string newText, MessageColorMode.MessageType msgType = MessageColorMode.MessageType.Sender)
+    {
+        dopeCoderController.uiController.UpdateChat(newText, msgType);
+        if (msgType == MessageColorMode.MessageType.Reciever) sphereController.SetMode(SphereController.SphereMode.Talking);
+        if (msgType == MessageColorMode.MessageType.Sender) sphereController.SetMode(SphereController.SphereMode.Listening);
+
+    }
 
 
 
@@ -322,7 +341,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     private bool ParseKeyword()
     {
-        string input = chatWindow.inputField.text;
+        string input = dopeCoderController.uiController.inputField.text;
         foreach (KeywordEvent k in keywordEvents)
         {
             if (input.Contains(k.Keyword, StringComparison.OrdinalIgnoreCase))
@@ -353,7 +372,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     public void InvokeFunction()
     {
-        string _text = chatWindow.inputField.text;
+        string _text = dopeCoderController.uiController.inputField.text;
         string _func = ParseFunctionName(_text);
         if (!string.IsNullOrEmpty(_func))
         {
@@ -364,7 +383,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     public void ViewClassVariables()
     {
-        string _text = chatWindow.inputField.text;
+        string _text = dopeCoderController.uiController.inputField.text;
         string className = ParseClassName(_text, "view variables of ");
         if (!string.IsNullOrEmpty(className))
         {
@@ -379,7 +398,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     public void ViewVariable()
     {
-        string _text = chatWindow.inputField.text;
+        string _text = dopeCoderController.uiController.inputField.text;
         string variableName = ParseVariableName(_text, "view variable ");
         if (!string.IsNullOrEmpty(variableName))
         {
@@ -430,18 +449,4 @@ public class GPTReflectionAnalysis : MonoBehaviour
     }
 
     
-}
-
-
-[System.Serializable]
-public class KeywordEvent {
-    public string Keyword;
-    public string Description;
-    public UnityEngine.Events.UnityEvent keywordEvent;
-}
-
-[Serializable]
-public class FileReference {
-    public string assetPath;
-    public bool markedForRemoval;
 }
