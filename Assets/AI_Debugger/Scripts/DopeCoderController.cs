@@ -74,7 +74,7 @@ public class DopeCoderController : MonoBehaviour
     public void UpdateChat(string newText, MessageColorMode.MessageType msgType = MessageColorMode.MessageType.Sender)
     {
         uiController.UpdateChat(newText, msgType);
-        if (msgType == MessageColorMode.MessageType.Reciever) sphereController.SetMode(SphereController.SphereMode.Talking);
+        if (msgType == MessageColorMode.MessageType.Receiver) sphereController.SetMode(SphereController.SphereMode.Talking);
         if (msgType == MessageColorMode.MessageType.Sender) sphereController.SetMode(SphereController.SphereMode.Listening);
 
     }
@@ -117,8 +117,9 @@ public class DopeCoderController : MonoBehaviour
             uiController.ToggleInput(true); // bc chat request is async in else block, we toggle ui back here for local commands
         }
         else {
-            //chatBehaviour.SubmitChat(chatBehaviour.inputField.text);
-            gptInterfacer.SubmitChatStreamRequst(uiController.inputField.text);
+            //gptInterfacer.SubmitChatStreamRequst(uiController.inputField.text);            
+            gptInterfacer.SubmitAssistantResponseRequest(uiController.inputField.text);
+            //_ = gptInterfacer.SendMessageToAssistantAsync(uiController.inputField.text);
         }        
         uiController.inputField.text = string.Empty;
     }

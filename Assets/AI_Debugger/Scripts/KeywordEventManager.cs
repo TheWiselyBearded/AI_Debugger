@@ -46,7 +46,7 @@ public class KeywordEventManager : MonoBehaviour
         }
 
         string helpText = helpTextStrBuilder.ToString();
-        DopeCoderController.Instance.UpdateChat(helpText, MessageColorMode.MessageType.Reciever);
+        DopeCoderController.Instance.UpdateChat(helpText, MessageColorMode.MessageType.Receiver);
     }
 
 
@@ -72,7 +72,7 @@ public class KeywordEventManager : MonoBehaviour
             // update references
             DopeCoderController.Instance.componentController.ScanAndPopulateClasses();
             string localQueryResponse = DopeCoderController.Instance.componentController.GetAllVariableValuesAsString(className);
-            DopeCoderController.Instance.UpdateChat(localQueryResponse, MessageColorMode.MessageType.Reciever);
+            DopeCoderController.Instance.UpdateChat(localQueryResponse, MessageColorMode.MessageType.Receiver);
         }
     }
 

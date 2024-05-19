@@ -193,7 +193,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
                     Debug.Log("Attempting to invoke speech req");
                     //dopeCoderController.speechController.GenerateSpeech(_message.PrintContent());
                 }
-                UpdateChat($"{_message.Role}: {_message.PrintContent()}", _message.Role == Role.User ? MessageColorMode.MessageType.Sender : MessageColorMode.MessageType.Reciever);
+                UpdateChat($"{_message.Role}: {_message.PrintContent()}", _message.Role == Role.User ? MessageColorMode.MessageType.Sender : MessageColorMode.MessageType.Receiver);
             }
         }
     }
@@ -322,7 +322,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
     public void UpdateChat(string newText, MessageColorMode.MessageType msgType = MessageColorMode.MessageType.Sender)
     {
         dopeCoderController.uiController.UpdateChat(newText, msgType);
-        if (msgType == MessageColorMode.MessageType.Reciever) sphereController.SetMode(SphereController.SphereMode.Talking);
+        if (msgType == MessageColorMode.MessageType.Receiver) sphereController.SetMode(SphereController.SphereMode.Talking);
         if (msgType == MessageColorMode.MessageType.Sender) sphereController.SetMode(SphereController.SphereMode.Listening);
 
     }

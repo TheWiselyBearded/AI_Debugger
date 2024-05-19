@@ -80,7 +80,7 @@ public class UI_Controller : MonoBehaviour
         //textObject.transform.SetParent(contentArea, false);
         var msgColorMode = textObject.GetComponent<MessageColorMode>();
         if (role == Role.User) msgColorMode.SetMode(MessageColorMode.MessageType.Sender);
-        else msgColorMode.SetMode(MessageColorMode.MessageType.Reciever);
+        else msgColorMode.SetMode(MessageColorMode.MessageType.Receiver);
 
         var textMesh = msgColorMode.messageText;
         MarkdownRenderer mr = textMesh.gameObject.AddComponent<MarkdownRenderer>();

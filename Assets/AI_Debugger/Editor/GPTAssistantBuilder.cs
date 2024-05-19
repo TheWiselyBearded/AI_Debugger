@@ -70,6 +70,7 @@ public class GPTAssistantBuilder : EditorWindow {
         } else {
             ListAssistantsAsync();
         }
+        ApplyAssistantIdToInterfacer();
     }
 
 
@@ -275,6 +276,7 @@ public class GPTAssistantBuilder : EditorWindow {
         } else {
             Debug.LogWarning("GPTInterfacer not found in the scene.");
         }
+        EditorUtility.SetDirty(gptInterfacer);
     }
 
     private async void UploadFileToAssistantAsync(string filePath) {

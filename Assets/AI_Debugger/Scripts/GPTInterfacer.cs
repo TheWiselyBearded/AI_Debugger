@@ -13,6 +13,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine.EventSystems;
 using Utilities.WebRequestRest;
+using OpenAI.Assistants;
 
 public class GPTInterfacer : MonoBehaviour
 {
@@ -29,10 +30,11 @@ public class GPTInterfacer : MonoBehaviour
     public static GPTMessageReceived onGPTMessageReceived;
 
     #region GPTAssistantVariables
+    private AssistantResponse assistant;
+    private ThreadResponse gptThreadResponse;
     private string threadID;
     private string messageID;
     private string runID;
-    protected ThreadResponse GPTthread;
     private const int GPT4_CHARACTERLIMIT = 32768;
     #endregion
 
@@ -46,10 +48,28 @@ public class GPTInterfacer : MonoBehaviour
     }
 
 
-    protected void Start()
+    protected async void Start()
     {
-        DopeCoderController.Instance.uiController.inputField.onSubmit.AddListener(DopeCoderController.Instance.SubmitChat);      
+        DopeCoderController.Instance.uiController.inputField.onSubmit.AddListener(DopeCoderController.Instance.SubmitChat);
+
+        await InitializeAssistantSessionAsync();
     }
+
+
+    public async Task InitializeAssistantSessionAsync() {
+        assistant = await openAI.AssistantsEndpoint.RetrieveAssistantAsync(AssistantID);
+        gptThreadResponse = await openAI.ThreadsEndpoint.CreateThreadAsync();
+        threadID = gptThreadResponse.Id;
+        Debug.Log($"Initialized assistant session: {assistant.Name} with thread ID: {gptThreadResponse.Id}");
+    }
+
+    public async Task<string> SendMessageToAssistantAsync(string message) {
+        var request = new CreateMessageRequest(message);
+        var response = await openAI.ThreadsEndpoint.CreateMessageAsync(gptThreadResponse.Id, request);
+        //onGPTMessageReceived?.Invoke(response.PrintContent(), MessageColorMode.MessageType.Reciever);
+        return response.PrintContent();
+    }
+
 
     protected void OnDestroy()
     {
@@ -65,37 +85,36 @@ public class GPTInterfacer : MonoBehaviour
     }
 
 
-    public async void SubmitAssistantResponseRequest(string msg = "What exactly is all the code doing around me and what relationships do the scripts have with one another?")
-    {
+    public async void SubmitAssistantResponseRequest(string msg = "What exactly is all the code doing around me and what relationships do the scripts have with one another?") {
         isChatPending = true;
-        var assistant = await openAI.AssistantsEndpoint.RetrieveAssistantAsync(AssistantID);
-        Debug.Log($"{assistant} -> {assistant.CreatedAt}");
 
-        if (threadID == null || threadID == string.Empty)
-        {
-            GPTthread = await openAI.ThreadsEndpoint.CreateThreadAsync();
-            threadID = GPTthread.Id;
+        // Retrieve the assistant if not already done
+        if (assistant == null || assistant.Id != AssistantID) {
+            assistant = await openAI.AssistantsEndpoint.RetrieveAssistantAsync(AssistantID);
+            Debug.Log($"{assistant} -> {assistant.CreatedAt}");
+        }
+
+        // Create a new thread if not already created
+        if (gptThreadResponse == null) {
+            gptThreadResponse = await openAI.ThreadsEndpoint.CreateThreadAsync();
+            threadID = gptThreadResponse.Id;
         }
 
         CreateMessageRequest request;
         MessageResponse message;
 
-        // check if char count exceed, if so make file, then submit to GPTAssistant
-        if (msg.Length > GPT4_CHARACTERLIMIT)
-        { 
+        // Check if message exceeds character limit and handle file uploads
+        if (msg.Length > GPT4_CHARACTERLIMIT) {
             msg += "Please first make sure to read the file attached to this message before responding.";
             MemoryStream ms = await WriteGPTQueryToStream(msg);
-            // Calculate the number of files needed
+
             int numberOfFiles = (int)Math.Ceiling((double)ms.Length / GPT4_CHARACTERLIMIT);
             FileReference[] files = new FileReference[numberOfFiles];
             string[] fileIDs = new string[numberOfFiles];
-            for (int i = 0; i < numberOfFiles; i++)
-            {
+            for (int i = 0; i < numberOfFiles; i++) {
                 string tempFilePath = Path.Combine(Application.temporaryCachePath, $"tempFile_{i}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt");
 
-                using (FileStream file = new FileStream(tempFilePath, System.IO.FileMode.Create, FileAccess.Write))
-                {
-                    // Copy the portion of the MemoryStream into the file
+                using (FileStream file = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write)) {
                     ms.Position = i * GPT4_CHARACTERLIMIT;
                     byte[] buffer = new byte[Math.Min(GPT4_CHARACTERLIMIT, ms.Length - ms.Position)];
                     ms.Read(buffer, 0, buffer.Length);
@@ -106,49 +125,44 @@ public class GPTInterfacer : MonoBehaviour
                 var fileData = await openAI.FilesEndpoint.UploadFileAsync(files[i].assetPath, "assistants");
                 Debug.Log($"Exceeded character count, creating file upload req {fileData.Id}");
                 fileIDs[i] = fileData.Id;
-                // Optionally, delete the temporary file after upload
-                //File.Delete(tempFilePath);
             }
-            msg = "okay, based on everything in the text files I've given you in this message thread, what are some of the most important classes you've identified? Please explain how everything works";
-            //request = new CreateMessageRequest(msg, new[] { fileIDs[0], fileIDs[1], fileIDs[2] }); 
+            msg = "Okay, based on everything in the text files I've given you in this message thread, what are some of the most important classes you've identified? Please explain how everything works";
             request = new CreateMessageRequest(msg, fileIDs);
-
-            message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
-            //var messageFileMsg = await DopeCoderController.Instance.openAI.ThreadsEndpoint.CreateMessageAsync(threadID, requestFileMsg);
-        }
-        else
-        {
+        } else {
             request = new CreateMessageRequest(msg);
-            message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
+            Debug.Log("Reg msg req no file upload");
         }
 
-
+        // Send the message
+        message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
         messageID = message.Id;
         Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");
 
-        if (!gptDebugMessages.ContainsKey(message.Id))
-        {
+        if (!gptDebugMessages.ContainsKey(message.Id)) {
             gptDebugMessages.Add(message.Id, message);
             onGPTMessageReceived?.Invoke($"User: {message.PrintContent()}", MessageColorMode.MessageType.Sender);
         }
 
-        var run = await GPTthread.CreateRunAsync(assistant);
+        // Create a run to get the assistant's response
+        //var run = await openAI.AssistantsEndpoint.CreateRunAsync(assistant.Id, thread.Id);
+        var run = await gptThreadResponse.CreateRunAsync(assistant);
         Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
         runID = run.Id;
 
+        // Retrieve and process the assistant's response
         var messageList = await RetrieveAssistantResponseAsync();
-        for (int index = messageList.Items.Count - 1; index >= 0; index--)
-        {
+        for (int index = messageList.Items.Count - 1; index >= 0; index--) {
             var _message = messageList.Items[index];
             Debug.Log($"{_message.Id}: {_message.Role}: {_message.PrintContent()}");
-            if (!gptDebugMessages.ContainsKey(_message.Id))
-            {
+            if (!gptDebugMessages.ContainsKey(_message.Id)) {
                 gptDebugMessages.Add(_message.Id, _message);
                 onGPTMessageReceived?.Invoke($"{_message.Role}: {_message.PrintContent()}",
-                    _message.Role == Role.User ? MessageColorMode.MessageType.Sender : MessageColorMode.MessageType.Reciever);
+                    _message.Role == Role.User ? MessageColorMode.MessageType.Sender : MessageColorMode.MessageType.Receiver);
             }
         }
+        isChatPending = false;
     }
+
 
     public async void SubmitChatStreamRequst(string text)
     {
@@ -169,7 +183,7 @@ public class GPTInterfacer : MonoBehaviour
             
             conversation.AppendMessage(response.FirstChoice.Message);
 
-            onGPTMessageReceived?.Invoke(response, MessageColorMode.MessageType.Reciever);
+            onGPTMessageReceived?.Invoke(response, MessageColorMode.MessageType.Receiver);
         }
         catch (Exception e)
         {

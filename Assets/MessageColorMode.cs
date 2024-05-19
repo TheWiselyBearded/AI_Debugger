@@ -9,7 +9,7 @@ public class MessageColorMode : MonoBehaviour
     public enum MessageType
     {
         Sender,
-        Reciever
+        Receiver
     }
 
     [SerializeField]
