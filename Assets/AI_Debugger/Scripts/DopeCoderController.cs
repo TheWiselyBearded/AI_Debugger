@@ -152,6 +152,13 @@ public class DopeCoderController : MonoBehaviour
 [System.Serializable]
 public class DopeCoderSettings
 {
+    [System.Serializable]
+    public enum OperatingMode {
+        Basic,
+        Debugger,
+        Creator
+    }
+    public OperatingMode operatingMode;
     public bool debugMode;
     public bool tts;
     public bool saveLogs;

@@ -17,8 +17,6 @@ using Utilities.WebRequestRest;
 public class GPTInterfacer : MonoBehaviour
 {
     public string AssistantID;
-    public string AssistantIDGPT3;
-    public string AssistantIDGPT4;
     private bool isChatPending;
 
     #region OpenAI_Variables

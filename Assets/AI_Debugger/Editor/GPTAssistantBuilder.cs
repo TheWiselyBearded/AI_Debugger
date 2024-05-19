@@ -266,6 +266,17 @@ public class GPTAssistantBuilder : EditorWindow {
         }
     }
 
+    private void ApplyAssistantIdToInterfacer() {
+        // Find the GPTInterfacer in the active scene
+        GPTInterfacer gptInterfacer = FindObjectOfType<GPTInterfacer>();
+        if (gptInterfacer != null) {
+            gptInterfacer.AssistantID = assistantId;
+            Debug.Log($"AssistantID set to GPTInterfacer: {assistantId}");
+        } else {
+            Debug.LogWarning("GPTInterfacer not found in the scene.");
+        }
+    }
+
     private async void UploadFileToAssistantAsync(string filePath) {
         if (string.IsNullOrEmpty(assignedAssistant.Id) || !vectorStores.Any()) {
             Debug.LogError("No assistant assigned or no vector stores available.");
@@ -408,6 +419,10 @@ public class GPTAssistantBuilder : EditorWindow {
         var filesListResponse = await api.AssistantsEndpoint.ListFilesAsync(assistantIdToLoad);
         assistantFiles = filesListResponse.Items.ToList();
         assistantId = assistantIdToLoad;
+
+        // Apply the assistantId to the GPTInterfacer
+        ApplyAssistantIdToInterfacer();
+
         EditorPrefs.SetString("AssistantId", assistantId);
         Debug.Log($"Loaded assistant {assistantId}");
 
