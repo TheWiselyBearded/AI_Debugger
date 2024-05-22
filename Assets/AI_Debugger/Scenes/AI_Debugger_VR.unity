@@ -575,6 +575,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 557500552}
   m_CullTransparentMesh: 1
+--- !u!114 &573976710 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2491141586073827901, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
+  m_PrefabInstance: {fileID: 600186464452012583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d53a95e430507413ca9a46b42ca20f6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &597577161
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2128,6 +2139,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1992401236529381659, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
+      propertyPath: Settings.saveLogs
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1992401236529381659, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
+      propertyPath: reflectionController
+      value: 
+      objectReference: {fileID: 573976710}
     - target: {fileID: 2047701017085433444, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.32
@@ -2182,6 +2201,22 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5167663489736242975, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
       propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7220505262597852437, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7220505262597852437, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7220505262597852437, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7220505262597852437, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
+      propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []

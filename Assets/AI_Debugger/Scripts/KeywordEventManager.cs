@@ -57,7 +57,7 @@ public class KeywordEventManager : MonoBehaviour
         if (!string.IsNullOrEmpty(_func))
         {
             Debug.Log($"Function name {_func}");
-            DopeCoderController.Instance.componentController.SearchFunctions(_func);
+            DopeCoderController.Instance.reflectionController.SearchFunctions(_func);
         }
     }
 
@@ -70,8 +70,8 @@ public class KeywordEventManager : MonoBehaviour
             Debug.Log($"Viewing variables of class {className}");
             //componentController.PrintAllVariableValues(className);
             // update references
-            DopeCoderController.Instance.componentController.ScanAndPopulateClasses();
-            string localQueryResponse = DopeCoderController.Instance.componentController.GetAllVariableValuesAsString(className);
+            DopeCoderController.Instance.reflectionController.ScanAndPopulateClasses();
+            string localQueryResponse = DopeCoderController.Instance.reflectionController.GetAllVariableValuesAsString(className);
             DopeCoderController.Instance.UpdateChat(localQueryResponse, MessageColorMode.MessageType.Receiver);
         }
     }
@@ -83,9 +83,9 @@ public class KeywordEventManager : MonoBehaviour
         if (!string.IsNullOrEmpty(variableName))
         {
             // update references
-            DopeCoderController.Instance.componentController.ScanAndPopulateClasses();
+            DopeCoderController.Instance.reflectionController.ScanAndPopulateClasses();
             Debug.Log($"Viewing variable {variableName}");
-            DopeCoderController.Instance.componentController.PrintVariableValueInAllClasses(variableName);
+            DopeCoderController.Instance.reflectionController.PrintVariableValueInAllClasses(variableName);
         }
     }
 

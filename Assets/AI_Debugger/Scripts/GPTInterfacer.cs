@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using UnityEngine.EventSystems;
 using Utilities.WebRequestRest;
 using OpenAI.Assistants;
+using System.Runtime.InteropServices;
 
 public class GPTInterfacer : MonoBehaviour
 {
@@ -31,7 +32,7 @@ public class GPTInterfacer : MonoBehaviour
 
     #region GPTAssistantVariables
     private AssistantResponse assistant;
-    private ThreadResponse gptThreadResponse;
+    public ThreadResponse gptThreadResponse;
     private string threadID;
     private string messageID;
     private string runID;
@@ -69,6 +70,28 @@ public class GPTInterfacer : MonoBehaviour
         //onGPTMessageReceived?.Invoke(response.PrintContent(), MessageColorMode.MessageType.Reciever);
         return response.PrintContent();
     }
+
+    public async Task<string> SendMessageToAssistantAsync(string message, bool isSnapshot = false) {
+        string jsonMessage;
+        if (isSnapshot) {
+            jsonMessage = "{ \"type\": \"snapshot\", \"content\": " + message + " }";
+        } else {
+            jsonMessage = message; // Assuming it's already a JSON string for subsequent messages
+        }
+        conversation.AppendMessage(new OpenAI.Chat.Message(Role.User, jsonMessage));
+        Debug.Log("About to issue response");
+        var response = await gptThreadResponse.CreateMessageAsync(jsonMessage);
+        Debug.Log($"GPT response {response.PrintContent()}");
+        conversation.AppendMessage(new OpenAI.Chat.Message(Role.Assistant, response.PrintContent().ToString()));
+
+        var run = await gptThreadResponse.CreateRunAsync(assistant);
+        
+        //onGPTMessageReceived?.Invoke(response.PrintContent(), MessageColorMode.MessageType.Reciever);
+        return response.PrintContent();
+    }
+
+
+    
 
 
     protected void OnDestroy()
@@ -129,6 +152,7 @@ public class GPTInterfacer : MonoBehaviour
             msg = "Okay, based on everything in the text files I've given you in this message thread, what are some of the most important classes you've identified? Please explain how everything works";
             request = new CreateMessageRequest(msg, fileIDs);
         } else {
+            msg = "{\"type\": \"question\", \"content\":\"" + msg + "\"}";
             request = new CreateMessageRequest(msg);
             Debug.Log("Reg msg req no file upload");
         }
@@ -140,7 +164,7 @@ public class GPTInterfacer : MonoBehaviour
 
         if (!gptDebugMessages.ContainsKey(message.Id)) {
             gptDebugMessages.Add(message.Id, message);
-            onGPTMessageReceived?.Invoke($"User: {message.PrintContent()}", MessageColorMode.MessageType.Sender);
+            //onGPTMessageReceived?.Invoke($"User: {message.PrintContent()}", MessageColorMode.MessageType.Sender);
         }
 
         // Create a run to get the assistant's response
@@ -184,6 +208,7 @@ public class GPTInterfacer : MonoBehaviour
             conversation.AppendMessage(response.FirstChoice.Message);
 
             onGPTMessageReceived?.Invoke(response, MessageColorMode.MessageType.Receiver);
+            isChatPending = false;
         }
         catch (Exception e)
         {

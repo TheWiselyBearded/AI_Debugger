@@ -5,6 +5,9 @@ using System;
 using System.Text.RegularExpressions;
 using System.Text;
 using System.Collections;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.IO;
 
 public class ReflectionRuntimeController : MonoBehaviour
 {
@@ -219,6 +222,46 @@ public class ReflectionRuntimeController : MonoBehaviour
         }
     }
 
+    public string GetAllVariableValuesAsJson() {
+        JObject jsonResult = new JObject();
+
+        foreach (var classEntry in classCollection) {
+            JObject classObject = new JObject();
+            string classString = GetAllVariableValuesAsString(classEntry.Key);
+
+            using (StringReader reader = new StringReader(classString)) {
+                string line;
+                while ((line = reader.ReadLine()) != null) {
+                    if (line.StartsWith("All variables in class")) {
+                        continue; // Skip the header line
+                    }
+
+                    if (line.Contains("(Dictionary):")) {
+                        string dictName = line.Split(new[] { " (Dictionary):" }, StringSplitOptions.None)[0].TrimStart('-').Trim();
+                        JObject dictionaryObject = new JObject();
+
+                        while ((line = reader.ReadLine()) != null && line.StartsWith("    - ")) {
+                            var keyValue = line.Trim().Split(new[] { ", Value: " }, StringSplitOptions.None);
+                            string key = keyValue[0].Replace("Key: ", "").Trim();
+                            string value = keyValue.Length > 1 ? keyValue[1] : "Unavailable";
+                            dictionaryObject.Add(key, value);
+                        }
+
+                        classObject.Add(dictName, dictionaryObject);
+                    } else {
+                        var keyValue = line.TrimStart('-').Split(new[] { ": " }, StringSplitOptions.None);
+                        string key = keyValue[0].Trim();
+                        string value = keyValue.Length > 1 ? keyValue[1] : "Unavailable";
+                        classObject.Add(key, value);
+                    }
+                }
+            }
+
+            jsonResult.Add(classEntry.Key, classObject);
+        }
+
+        return jsonResult.ToString(Formatting.Indented);
+    }
 
 
     public void PrintVariableValueInAllClasses(string variableName)

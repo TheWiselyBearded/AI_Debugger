@@ -26,7 +26,7 @@ public class DopeCoderController : MonoBehaviour
 
     public KeywordEventManager KeywordEventManager;
     public SphereController sphereController;
-    public ReflectionRuntimeController componentController;
+    public ReflectionRuntimeController reflectionController;
     public UI_Controller uiController;
     public GPTInterfacer gptInterfacer;
     [Header("Speech Controller Properties")]
@@ -63,6 +63,28 @@ public class DopeCoderController : MonoBehaviour
         sphereController.SetMode(SphereController.SphereMode.Idle);
         GPTInterfacer.onGPTMessageReceived += UpdateChat;
         SpeechController.onSTT += UpdateChatSTT;
+    }
+
+    void OnEnable() {
+        // Reference to the ReflectionRuntimeController        
+        if (gptInterfacer.gptThreadResponse == null) InvokeRepeating(nameof(InvokeActivationOperations), 1f, 1f);
+        else InvokeActivationOperations();        
+    }
+
+    public void InvokeActivationOperations() {
+        // Perform the scan
+        reflectionController.ScanAndPopulateClasses();
+
+        // Get the JSON formatted runtime values
+        string jsonSnapshot = reflectionController.GetAllVariableValuesAsJson();
+        Debug.Log($"Example json {jsonSnapshot}");
+        _ = gptInterfacer.SendMessageToAssistantAsync(jsonSnapshot, true);    // Send the snapshot to GPT Assistant
+
+        // Notify GPT Assistant that follow-up messages will be questions
+        string notificationMessage = "{ \"type\": \"update\", \"content\": \"Runtime values have been scanned and shared. Follow-up questions will be provided soon.\" }";
+        _ = gptInterfacer.SendMessageToAssistantAsync(notificationMessage);
+
+        CancelInvoke(nameof(InvokeActivationOperations));
     }
 
     public void ToggleTTS(bool toggle)
@@ -103,10 +125,10 @@ public class DopeCoderController : MonoBehaviour
     {
         sphereController.SetMode(SphereController.SphereMode.Listening);
         if (isChatPending || string.IsNullOrWhiteSpace(uiController.inputField.text)) { return; }
-        isChatPending = true;
+        //isChatPending = true;
 
 
-        uiController.ToggleInput(false);
+        //uiController.ToggleInput(false);
 
         var userMessageContent = uiController.AddNewTextMessageContent(Role.User);
         userMessageContent.text = $"User: {uiController.inputField.text}";
@@ -114,7 +136,7 @@ public class DopeCoderController : MonoBehaviour
         if (KeywordEventManager != null && KeywordEventManager.ParseKeyword()) {
             //componentController.SearchFunctions(ParseFunctionName(chatBehaviour.inputField.text));
             Debug.Log("Keyword found, invoking event");
-            uiController.ToggleInput(true); // bc chat request is async in else block, we toggle ui back here for local commands
+            //uiController.ToggleInput(true); // bc chat request is async in else block, we toggle ui back here for local commands
         }
         else {
             //gptInterfacer.SubmitChatStreamRequst(uiController.inputField.text);            
@@ -130,7 +152,7 @@ public class DopeCoderController : MonoBehaviour
     public void AnalyzeComponents()
     {
         // Format the data from your ComponentRuntimeController into a string for GPT analysis
-        string dataForGPT = gptInterfacer.FormatDataForGPT(componentController.classCollection);
+        string dataForGPT = gptInterfacer.FormatDataForGPT(reflectionController.classCollection);
         // Pre-prompt for the GPT query
         string gptPrompt = "Given the following snapshot of the runtime environment with classes, methods, and variables, can you analyze the relationships among these components and their runtime values? " +
             "Please leverage your knowledge of the code base as well using the documentation that was given to you, specifically looking at the classes specified in this message with respect to your documentation.";
