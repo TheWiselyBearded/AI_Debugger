@@ -63,6 +63,7 @@ public class DopeCoderController : MonoBehaviour
         sphereController.SetMode(SphereController.SphereMode.Idle);
         GPTInterfacer.onGPTMessageReceived += UpdateChat;
         SpeechController.onSTT += UpdateChatSTT;
+        reflectionController.ListAllAssemblies();
     }
 
     void OnEnable() {

@@ -82,7 +82,7 @@ public class GPTInterfacer : MonoBehaviour
         string notificationMessage = "{ \"type\": \"update\", \"content\": \"Runtime values have been scanned and shared. Follow-up questions will be provided soon.\" }";
         conversation.AppendMessage(new OpenAI.Chat.Message(Role.User, notificationMessage));
         Debug.Log($"About to issue message {jsonMessage}");
-        _ = await gptThreadResponse.CreateMessageAsync(jsonMessage);
+        _ = await gptThreadResponse.CreateMessageAsync(jsonMessage); // excess chars?
         _ = await gptThreadResponse.CreateMessageAsync(notificationMessage);
         //Debug.Log($"GPT response {response.PrintContent()}");
 

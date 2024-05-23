@@ -2191,6 +2191,10 @@ PrefabInstance:
       propertyPath: m_Camera
       value: 
       objectReference: {fileID: 1660777667}
+    - target: {fileID: 2491141586073827901, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
+      propertyPath: fullCodeScan
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4855752955052322799, guid: 5d0c8bb1bca80433d994a562b5248a5e, type: 3}
       propertyPath: m_Name
       value: AI_Debugger_VR
