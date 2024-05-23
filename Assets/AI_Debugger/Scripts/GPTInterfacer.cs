@@ -125,52 +125,20 @@ public class GPTInterfacer : MonoBehaviour
             threadID = gptThreadResponse.Id;
         }
 
-        CreateMessageRequest request;
-        MessageResponse message;
-
-        // Check if message exceeds character limit and handle file uploads
-        if (msg.Length > GPT4_CHARACTERLIMIT) {
-            msg += "Please first make sure to read the file attached to this message before responding.";
-            MemoryStream ms = await WriteGPTQueryToStream(msg);
-
-            int numberOfFiles = (int)Math.Ceiling((double)ms.Length / GPT4_CHARACTERLIMIT);
-            FileReference[] files = new FileReference[numberOfFiles];
-            string[] fileIDs = new string[numberOfFiles];
-            for (int i = 0; i < numberOfFiles; i++) {
-                string tempFilePath = Path.Combine(Application.temporaryCachePath, $"tempFile_{i}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt");
-
-                using (FileStream file = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write)) {
-                    ms.Position = i * GPT4_CHARACTERLIMIT;
-                    byte[] buffer = new byte[Math.Min(GPT4_CHARACTERLIMIT, ms.Length - ms.Position)];
-                    ms.Read(buffer, 0, buffer.Length);
-                    file.Write(buffer, 0, buffer.Length);
-                }
-                files[i] = new FileReference { assetPath = tempFilePath };
-
-                var fileData = await openAI.FilesEndpoint.UploadFileAsync(files[i].assetPath, "assistants");
-                Debug.Log($"Exceeded character count, creating file upload req {fileData.Id}");
-                fileIDs[i] = fileData.Id;
-            }
-            msg = "Okay, based on everything in the text files I've given you in this message thread, what are some of the most important classes you've identified? Please explain how everything works";
-            request = new CreateMessageRequest(msg, fileIDs);
-        } else {
-            msg = "{\"type\": \"question\", \"content\":\"" + msg + "\"}";
-            request = new CreateMessageRequest(msg);
-            Debug.Log("Reg msg req no file upload");
-        }
+        // Handle character limit and file uploads
+        CreateMessageRequest request = await HandleCharacterLimitAndFileUploadsAsync(msg);
 
         // Send the message
-        message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
+        MessageResponse message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
         messageID = message.Id;
         Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");
 
         if (!gptDebugMessages.ContainsKey(message.Id)) {
             gptDebugMessages.Add(message.Id, message);
-            //onGPTMessageReceived?.Invoke($"User: {message.PrintContent()}", MessageColorMode.MessageType.Sender);
+            onGPTMessageReceived?.Invoke($"User: {message.PrintContent()}", MessageColorMode.MessageType.Sender);
         }
 
         // Create a run to get the assistant's response
-        //var run = await openAI.AssistantsEndpoint.CreateRunAsync(assistant.Id, thread.Id);
         var run = await gptThreadResponse.CreateRunAsync(assistant);
         Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
         runID = run.Id;
@@ -187,6 +155,37 @@ public class GPTInterfacer : MonoBehaviour
             }
         }
         isChatPending = false;
+    }
+
+
+    private async Task<CreateMessageRequest> HandleCharacterLimitAndFileUploadsAsync(string msg) {
+        if (msg.Length <= GPT4_CHARACTERLIMIT) {
+            msg = "{\"type\": \"question\", \"content\":\"" + msg + "\"}";
+            return new CreateMessageRequest(msg);
+        }
+
+        msg += "Please first make sure to read the file attached to this message before responding.";
+        MemoryStream ms = await WriteGPTQueryToStream(msg);
+        int numberOfFiles = (int)Math.Ceiling((double)ms.Length / GPT4_CHARACTERLIMIT);
+        FileReference[] files = new FileReference[numberOfFiles];
+        string[] fileIDs = new string[numberOfFiles];
+        for (int i = 0; i < numberOfFiles; i++) {
+            string tempFilePath = Path.Combine(Application.temporaryCachePath, $"tempFile_{i}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt");
+
+            using (FileStream file = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write)) {
+                ms.Position = i * GPT4_CHARACTERLIMIT;
+                byte[] buffer = new byte[Math.Min(GPT4_CHARACTERLIMIT, ms.Length - ms.Position)];
+                ms.Read(buffer, 0, buffer.Length);
+                file.Write(buffer, 0, buffer.Length);
+            }
+            files[i] = new FileReference { assetPath = tempFilePath };
+
+            var fileData = await openAI.FilesEndpoint.UploadFileAsync(files[i].assetPath, "assistants");
+            Debug.Log($"Exceeded character count, creating file upload req {fileData.Id}");
+            fileIDs[i] = fileData.Id;
+        }
+        msg = "Okay, based on everything in the text files I've given you in this message thread, what are some of the most important classes you've identified? Please explain how everything works";
+        return new CreateMessageRequest(msg, fileIDs);
     }
 
 

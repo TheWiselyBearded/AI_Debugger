@@ -30,18 +30,26 @@ public class ReflectionRuntimeController : MonoBehaviour {
         // Clearing existing data
         classCollection.Clear();
 
-        if (ScanCollidersOnly) {    // Find all colliders within the specified radius
+        if (ScanCollidersOnly) {
+            // Find all colliders within the specified radius
             Collider[] colliders = Physics.OverlapSphere(transform.position, detectionRadius, detectionLayer);
             foreach (Collider collider in colliders) {
                 GameObject obj = collider.gameObject;
                 PopulateClassInfo(obj);
             }
             Debug.Log($"Total {colliders.Length}");
+        } else if (fullCodeScan || includedAssemblies.Count > 0 || excludedAssemblies.Count > 0) {
+            PopulateClassInfo();  // Uses the new implementation with assembly filtering
         } else {
-            PopulateClassInfo();
-            Debug.Log($"Total {classCollection.Count}");
+            // Default to scanning only MonoBehaviour objects
+            MonoBehaviour[] scripts = UnityEngine.Object.FindObjectsOfType<MonoBehaviour>();
+            foreach (MonoBehaviour script in scripts) {
+                ProcessType(script.GetType(), script);
+            }
+            Debug.Log($"Total {scripts.Length}");
         }
     }
+
 
     public void ListAllAssemblies() {
         var assemblies = AppDomain.CurrentDomain.GetAssemblies();
@@ -91,8 +99,8 @@ public class ReflectionRuntimeController : MonoBehaviour {
                 ProcessType(type, script);
             }
         }
-
     }
+
 
 
     void ProcessType(Type type, object script) {
