@@ -64,14 +64,14 @@ public class GPTInterfacer : MonoBehaviour
         Debug.Log($"Initialized assistant session: {assistant.Name} with thread ID: {gptThreadResponse.Id}");
     }
 
-    public async Task<string> SendMessageToAssistantAsync(string message) {
-        var request = new CreateMessageRequest(message);
-        var response = await openAI.ThreadsEndpoint.CreateMessageAsync(gptThreadResponse.Id, request);
-        //onGPTMessageReceived?.Invoke(response.PrintContent(), MessageColorMode.MessageType.Reciever);
-        return response.PrintContent();
-    }
+    //public async Task<string> SendMessageToAssistantAsync(string message) {
+    //    var request = new CreateMessageRequest(message);
+    //    var response = await openAI.ThreadsEndpoint.CreateMessageAsync(gptThreadResponse.Id, request);
+    //    //onGPTMessageReceived?.Invoke(response.PrintContent(), MessageColorMode.MessageType.Reciever);
+    //    return response.PrintContent();
+    //}
 
-    public async Task<string> SendMessageToAssistantAsync(string message, bool isSnapshot = false) {
+    public async void SendRuntimeScanAssistantAsync(string message, bool isSnapshot = false) {
         string jsonMessage;
         if (isSnapshot) {
             jsonMessage = "{ \"type\": \"snapshot\", \"content\": " + message + " }";
@@ -79,15 +79,17 @@ public class GPTInterfacer : MonoBehaviour
             jsonMessage = message; // Assuming it's already a JSON string for subsequent messages
         }
         conversation.AppendMessage(new OpenAI.Chat.Message(Role.User, jsonMessage));
-        Debug.Log("About to issue response");
-        var response = await gptThreadResponse.CreateMessageAsync(jsonMessage);
-        Debug.Log($"GPT response {response.PrintContent()}");
-        conversation.AppendMessage(new OpenAI.Chat.Message(Role.Assistant, response.PrintContent().ToString()));
+        string notificationMessage = "{ \"type\": \"update\", \"content\": \"Runtime values have been scanned and shared. Follow-up questions will be provided soon.\" }";
+        conversation.AppendMessage(new OpenAI.Chat.Message(Role.User, notificationMessage));
+        Debug.Log($"About to issue message {jsonMessage}");
+        _ = await gptThreadResponse.CreateMessageAsync(jsonMessage);
+        _ = await gptThreadResponse.CreateMessageAsync(notificationMessage);
+        //Debug.Log($"GPT response {response.PrintContent()}");
+
 
         var run = await gptThreadResponse.CreateRunAsync(assistant);
-        
-        //onGPTMessageReceived?.Invoke(response.PrintContent(), MessageColorMode.MessageType.Reciever);
-        return response.PrintContent();
+        Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
+        //onGPTMessageReceived?.Invoke(response.PrintContent(), MessageColorMode.MessageType.Reciever);       
     }
 
 

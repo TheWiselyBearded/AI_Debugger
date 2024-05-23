@@ -77,12 +77,8 @@ public class DopeCoderController : MonoBehaviour
 
         // Get the JSON formatted runtime values
         string jsonSnapshot = reflectionController.GetAllVariableValuesAsJson();
-        Debug.Log($"Example json {jsonSnapshot}");
-        _ = gptInterfacer.SendMessageToAssistantAsync(jsonSnapshot, true);    // Send the snapshot to GPT Assistant
-
-        // Notify GPT Assistant that follow-up messages will be questions
-        string notificationMessage = "{ \"type\": \"update\", \"content\": \"Runtime values have been scanned and shared. Follow-up questions will be provided soon.\" }";
-        _ = gptInterfacer.SendMessageToAssistantAsync(notificationMessage);
+        //Debug.Log($"Example json {jsonSnapshot}");
+        gptInterfacer.SendRuntimeScanAssistantAsync(jsonSnapshot, true);    // Send the snapshot to GPT Assistant
 
         CancelInvoke(nameof(InvokeActivationOperations));
     }
