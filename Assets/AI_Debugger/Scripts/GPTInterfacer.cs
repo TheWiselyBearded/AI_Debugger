@@ -176,7 +176,7 @@ public class GPTInterfacer : MonoBehaviour
         runID = run.Id;
 
         // Retrieve and process the assistant's response
-        var messageList = await RetrieveAssistantResponseAsync();
+        var messageList = await AwaitAssistantResponseAsync();
         for (int index = messageList.Items.Count - 1; index >= 0; index--) {
             var _message = messageList.Items[index];
             Debug.Log($"{_message.Id}: {_message.Role}: {_message.PrintContent()}");
@@ -238,7 +238,7 @@ public class GPTInterfacer : MonoBehaviour
 
     }
 
-    private async Task<ListResponse<MessageResponse>> RetrieveAssistantResponseAsync()
+    private async Task<ListResponse<MessageResponse>> AwaitAssistantResponseAsync()
     {
         var run = await openAI.ThreadsEndpoint.RetrieveRunAsync(threadID, runID);
         Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
@@ -304,9 +304,6 @@ public class GPTInterfacer : MonoBehaviour
         return formattedData.ToString();
     }
 
-    /// <summary>
-    /// TODO: Format writing of file to be more properly ordered and formatted (distinguish user/assistant)
-    /// </summary>
     private void WriteConversationToFile()
     {
         // iterate over all messages and create a long string for now

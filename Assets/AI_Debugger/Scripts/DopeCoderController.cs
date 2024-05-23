@@ -117,7 +117,7 @@ public class DopeCoderController : MonoBehaviour
     /// <param name="_">user input query via unity input field</param>
     public void SubmitChat(string _) => SubmitChatRequest();
     public void SubmitChat() => SubmitChatRequest();
-    private async void SubmitChatRequest()
+    private void SubmitChatRequest()
     {
         sphereController.SetMode(SphereController.SphereMode.Listening);
         if (isChatPending || string.IsNullOrWhiteSpace(uiController.inputField.text)) { return; }
@@ -129,16 +129,18 @@ public class DopeCoderController : MonoBehaviour
         var userMessageContent = uiController.AddNewTextMessageContent(Role.User);
         userMessageContent.text = $"User: {uiController.inputField.text}";
 
-        if (KeywordEventManager != null && KeywordEventManager.ParseKeyword()) {
+        if (KeywordEventManager != null && KeywordEventManager.ParseKeyword())
+        {
             //componentController.SearchFunctions(ParseFunctionName(chatBehaviour.inputField.text));
             Debug.Log("Keyword found, invoking event");
             //uiController.ToggleInput(true); // bc chat request is async in else block, we toggle ui back here for local commands
         }
-        else {
+        else
+        {
             //gptInterfacer.SubmitChatStreamRequst(uiController.inputField.text);            
             gptInterfacer.SubmitAssistantResponseRequest(uiController.inputField.text);
             //_ = gptInterfacer.SendMessageToAssistantAsync(uiController.inputField.text);
-        }        
+        }
         uiController.inputField.text = string.Empty;
     }
 
@@ -147,13 +149,21 @@ public class DopeCoderController : MonoBehaviour
     /// </summary>
     public void AnalyzeComponents()
     {
-        // Format the data from your ComponentRuntimeController into a string for GPT analysis
-        string dataForGPT = gptInterfacer.FormatDataForGPT(reflectionController.classCollection);
-        // Pre-prompt for the GPT query
-        string gptPrompt = "Given the following snapshot of the runtime environment with classes, methods, and variables, can you analyze the relationships among these components and their runtime values? " +
-            "Please leverage your knowledge of the code base as well using the documentation that was given to you, specifically looking at the classes specified in this message with respect to your documentation.";
+        try {
+            reflectionController.ScanAndPopulateClasses();
+            string jsonSnapshot = reflectionController.GetAllVariableValuesAsJson();
+            gptInterfacer.SendRuntimeScanAssistantAsync(jsonSnapshot, true);    // Send the snapshot to GPT Assistant            
+        }
+        catch (Exception e) { Debug.LogError(e); }
+        finally {
+            //if (lifetimeCancellationTokenSource != null) {}
+            isChatPending = false;
+        }
 
-        // Combine the prompt with the data
+        /*// Format the data from your ComponentRuntimeController into a string for GPT analysis
+        string dataForGPT = gptInterfacer.FormatDataForGPT(reflectionController.classCollection);
+        string gptPrompt = "Given the following snapshot of the runtime environment with classes, methods, and variables, can you analyze the relationships among these components and their runtime values? " +
+            "Please leverage your knowledge of the code base as well using the documentation that was given to you, specifically looking at the classes specified in this message with respect to your documentation.";       
         string combinedMessage = $"{gptPrompt}\n{dataForGPT}";
         Debug.Log(combinedMessage);
         try { gptInterfacer.SubmitAssistantResponseRequest(combinedMessage); }
@@ -162,7 +172,7 @@ public class DopeCoderController : MonoBehaviour
         {
             //if (lifetimeCancellationTokenSource != null) {}
             isChatPending = false;
-        }
+        }*/
 
     }
 }
