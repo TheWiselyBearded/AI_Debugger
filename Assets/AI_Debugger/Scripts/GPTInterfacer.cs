@@ -142,8 +142,8 @@ public class GPTInterfacer : MonoBehaviour
             threadID = gptThreadResponse.Id;
         }
 
-        // Handle character limit and file uploads
-        CreateMessageRequest request = await HandleCharacterLimitAndFileUploadsAsync(msg);
+        // Handle character limit and create JSON file
+        CreateMessageRequest request = await HandleCharacterLimitAndCreateJsonFileAsync(msg);
 
         // Send the message
         MessageResponse message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
@@ -214,6 +214,37 @@ public class GPTInterfacer : MonoBehaviour
         }
         msg = "Okay, based on everything in the text files I've given you in this message thread, what are some of the most important classes you've identified? Please explain how everything works";
         return new CreateMessageRequest(msg, fileIDs);
+    }
+
+
+    private async Task<CreateMessageRequest> HandleCharacterLimitAndCreateJsonFileAsync(string msg) {
+        if (msg.Length <= GPT4_CHARACTERLIMIT) {
+            msg = "{\"type\": \"question\", \"content\":\"" + msg + "\"}";
+            return new CreateMessageRequest(msg);
+        }
+
+        msg += "Please first make sure to read the file attached to this message before responding.";
+        string jsonString = JsonConvert.SerializeObject(new { type = "question", content = msg });
+
+        string tempFilePath = Path.Combine(Application.temporaryCachePath, $"tempFile_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.json");
+        await File.WriteAllTextAsync(tempFilePath, jsonString);
+
+        var fileData = await openAI.FilesEndpoint.UploadFileAsync(tempFilePath, "assistants");
+        Debug.Log($"Exceeded character count, creating JSON file upload req {fileData.Id}");
+
+        msg = "Okay, based on everything in the JSON file I've given you in this message thread, what are some of the most important classes you've identified? Please explain how everything works";
+        return new CreateMessageRequest(msg, new[] { fileData.Id });
+    }
+
+    private async Task<string> WriteMessageToJsonFile(string message, string fileName) {
+        string tempFilePath = Path.Combine(Application.temporaryCachePath, fileName);
+        var jsonObject = new {
+            type = "question",
+            content = message
+        };
+        string jsonString = JsonConvert.SerializeObject(jsonObject);
+        await File.WriteAllTextAsync(tempFilePath, jsonString);
+        return tempFilePath;
     }
 
 
