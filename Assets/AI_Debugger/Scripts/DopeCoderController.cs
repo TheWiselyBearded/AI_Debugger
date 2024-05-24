@@ -33,9 +33,10 @@ public class DopeCoderController : MonoBehaviour
     public AudioSource speechControllerAudio;
     public GameObject speechControllerAudioPanel;
     public SpeechController speechController;
-
     private static bool isChatPending;
 
+    [SerializeField]
+    public bool scanOnStart;
     
 
     private void Awake()
@@ -67,7 +68,8 @@ public class DopeCoderController : MonoBehaviour
     }
 
     void OnEnable() {
-        // Reference to the ReflectionRuntimeController        
+        // Reference to the ReflectionRuntimeController
+        if (!scanOnStart) return;
         if (gptInterfacer.gptThreadResponse == null) InvokeRepeating(nameof(InvokeActivationOperations), 1f, 1f);
         else InvokeActivationOperations();        
     }
@@ -89,6 +91,9 @@ public class DopeCoderController : MonoBehaviour
         Settings.tts = toggle;
         speechController.EnableAudioInterface(toggle);
     }
+
+    public void ToggleScanOnStart(bool toggle) => scanOnStart = toggle;        
+    
 
     public void UpdateChat(string newText, MessageColorMode.MessageType msgType = MessageColorMode.MessageType.Sender)
     {

@@ -3457,6 +3457,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: ChatMode
       objectReference: {fileID: 0}
+    - target: {fileID: 5715416335250216647, guid: 541ed11e270c6994ca5910042c7e04da, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5715416335474355518, guid: 541ed11e270c6994ca5910042c7e04da, type: 3}
       propertyPath: m_LocalPosition.z
       value: 0
@@ -3928,7 +3932,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5715416335250216645, guid: 541ed11e270c6994ca5910042c7e04da, type: 3}
       propertyPath: onValueChanged.m_PersistentCalls.m_Calls.Array.size
-      value: 1
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5715416335250216645, guid: 541ed11e270c6994ca5910042c7e04da, type: 3}
+      propertyPath: onValueChanged.m_PersistentCalls.m_Calls.Array.data[1].m_Mode
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5715416335250216645, guid: 541ed11e270c6994ca5910042c7e04da, type: 3}
       propertyPath: onValueChanged.m_PersistentCalls.m_Calls.Array.data[0].m_Target
@@ -3948,7 +3956,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5715416335250216645, guid: 541ed11e270c6994ca5910042c7e04da, type: 3}
       propertyPath: onValueChanged.m_PersistentCalls.m_Calls.Array.data[1].m_MethodName
-      value: ToggleTTS
+      value: ToggleScanOnStart
       objectReference: {fileID: 0}
     - target: {fileID: 5715416335250216645, guid: 541ed11e270c6994ca5910042c7e04da, type: 3}
       propertyPath: onValueChanged.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
@@ -5072,11 +5080,12 @@ MonoBehaviour:
     then use "![Image](output.jpg)" to display it.'
   KeywordEventManager: {fileID: 1796559839208905452}
   sphereController: {fileID: 7389382506532930093}
-  componentController: {fileID: 2491141586073827901}
+  reflectionController: {fileID: 2491141586073827901}
   uiController: {fileID: 8908684215097922835}
   gptInterfacer: {fileID: 4753200803536005390}
   speechControllerAudio: {fileID: 5028693014921337989}
   speechControllerAudioPanel: {fileID: 8137679055848925303}
+  scanOnStart: 0
 --- !u!114 &8908684215097922835
 MonoBehaviour:
   m_ObjectHideFlags: 0
