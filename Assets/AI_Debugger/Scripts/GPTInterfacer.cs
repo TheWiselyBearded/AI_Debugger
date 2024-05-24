@@ -15,6 +15,7 @@ using UnityEngine.EventSystems;
 using Utilities.WebRequestRest;
 using OpenAI.Assistants;
 using System.Runtime.InteropServices;
+using Newtonsoft.Json;
 
 public class GPTInterfacer : MonoBehaviour
 {
@@ -78,22 +79,38 @@ public class GPTInterfacer : MonoBehaviour
         } else {
             jsonMessage = message; // Assuming it's already a JSON string for subsequent messages
         }
+
         conversation.AppendMessage(new OpenAI.Chat.Message(Role.User, jsonMessage));
         string notificationMessage = "{ \"type\": \"update\", \"content\": \"Runtime values have been scanned and shared. Follow-up questions will be provided soon.\" }";
         conversation.AppendMessage(new OpenAI.Chat.Message(Role.User, notificationMessage));
         Debug.Log($"About to issue message {jsonMessage}");
-        _ = await gptThreadResponse.CreateMessageAsync(jsonMessage); // excess chars?
-        _ = await gptThreadResponse.CreateMessageAsync(notificationMessage);
-        //Debug.Log($"GPT response {response.PrintContent()}");
 
+        try {
+            if (gptThreadResponse != null) {
+                await gptThreadResponse.CreateMessageAsync(jsonMessage);
+                await gptThreadResponse.CreateMessageAsync(notificationMessage);
+            } else {
+                Debug.LogWarning("gptThreadResponse is null. Unable to create messages.");
+            }
+        } catch (Exception ex) {
+            Debug.LogError($"Error creating messages: {ex.Message}");
+        }
 
-        var run = await gptThreadResponse.CreateRunAsync(assistant);
-        Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
-        //onGPTMessageReceived?.Invoke(response.PrintContent(), MessageColorMode.MessageType.Reciever);       
+        try {
+            if (gptThreadResponse != null) {
+                var run = await gptThreadResponse.CreateRunAsync(assistant);
+                Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
+            } else {
+                Debug.LogWarning("gptThreadResponse is null. Unable to create run.");
+            }
+        } catch (Exception ex) {
+            Debug.LogError($"Error creating run: {ex.Message}");
+        }
     }
 
 
-    
+
+
 
 
     protected void OnDestroy()
@@ -135,7 +152,7 @@ public class GPTInterfacer : MonoBehaviour
 
         if (!gptDebugMessages.ContainsKey(message.Id)) {
             gptDebugMessages.Add(message.Id, message);
-            onGPTMessageReceived?.Invoke($"User: {message.PrintContent()}", MessageColorMode.MessageType.Sender);
+            //onGPTMessageReceived?.Invoke($"User: {message.PrintContent()}", MessageColorMode.MessageType.Sender);
         }
 
         // Create a run to get the assistant's response
@@ -150,11 +167,22 @@ public class GPTInterfacer : MonoBehaviour
             Debug.Log($"{_message.Id}: {_message.Role}: {_message.PrintContent()}");
             if (!gptDebugMessages.ContainsKey(_message.Id)) {
                 gptDebugMessages.Add(_message.Id, _message);
-                onGPTMessageReceived?.Invoke($"{_message.Role}: {_message.PrintContent()}",
-                    _message.Role == Role.User ? MessageColorMode.MessageType.Sender : MessageColorMode.MessageType.Receiver);
+                ProcessAssistantResponse(_message.PrintContent());
             }
         }
         isChatPending = false;
+    }
+
+    private void ProcessAssistantResponse(string jsonResponse) {
+        try {
+            var responseObject = JsonConvert.DeserializeObject<JObject>(jsonResponse);
+            if (responseObject["type"]?.ToString() == "response") {
+                string content = responseObject["content"]?.ToString();
+                onGPTMessageReceived?.Invoke(content, MessageColorMode.MessageType.Receiver);
+            }
+        } catch (Exception ex) {
+            Debug.LogError($"Error processing assistant response: {ex.Message}");
+        }
     }
 
 
