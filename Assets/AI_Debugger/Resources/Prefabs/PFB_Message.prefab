@@ -221,22 +221,22 @@ MonoBehaviour:
     arcu, vel fermentum leo magna vel est. Ut sollicitudin ullamcorper magna, eu
     gravida justo.
 
-    
 
-    Pellentesque habitant morbi tristique senectus et
-    netus et malesuada fames ac turpis egestas. Proin posuere placerat mauris non
-    tristique. Curabitur aliquam pretium purus, a finibus tortor pharetra ut. Fusce
-    nec magna vehicula, consectetur eros vitae, maximus nibh. Integer vitae neque
-    eget odio aliquet aliquam.
 
-    
+    Pellentesque habitant morbi tristique senectus et netus
+    et malesuada fames ac turpis egestas. Proin posuere placerat mauris non tristique.
+    Curabitur aliquam pretium purus, a finibus tortor pharetra ut. Fusce nec magna
+    vehicula, consectetur eros vitae, maximus nibh. Integer vitae neque eget odio
+    aliquet aliquam.
 
-    Suspendisse ut felis a elit faucibus
-    aliquet. Nam auctor consequat massa, vel consectetur lectus eleifend at. Phasellus
-    non tortor nulla. Quisque lacinia nisl in est condimentum, vel ultrices odio
-    viverra. In ut aliquam ante. Vestibulum ante ipsum primis in faucibus orci luctus
-    et ultrices posuere cubilia curae; Sed pretium felis in dui varius, ac tristique
-    risus dictum. Sed nec semper metus.'
+
+
+    Suspendisse ut felis a elit faucibus aliquet. Nam auctor
+    consequat massa, vel consectetur lectus eleifend at. Phasellus non tortor nulla.
+    Quisque lacinia nisl in est condimentum, vel ultrices odio viverra. In ut aliquam
+    ante. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere
+    cubilia curae; Sed pretium felis in dui varius, ac tristique risus dictum. Sed
+    nec semper metus.'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -1125,7 +1125,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 150, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &8567517006660413159
 GameObject:
@@ -1249,7 +1249,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 8470969859498803851}
   m_Direction: 2
   m_Value: 1
-  m_Size: 0.07016396
+  m_Size: 0.09064083
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
