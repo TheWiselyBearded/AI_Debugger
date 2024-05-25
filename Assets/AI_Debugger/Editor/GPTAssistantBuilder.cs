@@ -75,6 +75,7 @@ public class GPTAssistantBuilder : EditorWindow {
 
 
     private void OnDisable() {
+        gptUtilities.vectorStoreAPI = null;
         SaveFilesToEditorPrefs();
     }
 
@@ -203,10 +204,6 @@ public class GPTAssistantBuilder : EditorWindow {
             CreateOrUpdateAssistantAsync();
         }
 
-        if (GUILayout.Button("Attach Files to Assistant")) {
-            AttachFilesToAssistantAsync();
-        }
-
         if (!string.IsNullOrEmpty(assistantId) && GUILayout.Button("Delete Assistant")) {
             DeleteAssistantAsync();
         }
@@ -246,19 +243,6 @@ public class GPTAssistantBuilder : EditorWindow {
                 GUILayout.Space(10);
             }
             EditorGUILayout.EndScrollView();
-        }
-
-        // Section to select and upload a file to the assistant
-        if (assignedAssistant != null) {
-            GUILayout.Label("Upload File to Assistant", EditorStyles.boldLabel);
-            if (GUILayout.Button("Select File to Upload")) {
-                string path = EditorUtility.OpenFilePanel("Select File to Upload", "", "");
-                if (!string.IsNullOrEmpty(path)) {
-                    UploadFileToAssistantAsync(path);
-                }
-            }
-
-            GUILayout.Space(10);
         }
 
         if (isCreatingOrUpdating) {
