@@ -32,7 +32,7 @@ public class GPTInterfacer : MonoBehaviour
     public static GPTMessageReceived onGPTMessageReceived;
 
     #region GPTAssistantVariables
-    private AssistantResponse assistant;
+    public AssistantResponse assistant;
     public ThreadResponse gptThreadResponse;
     private string threadID;
     private string messageID;

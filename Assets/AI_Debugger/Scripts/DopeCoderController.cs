@@ -64,7 +64,7 @@ public class DopeCoderController : MonoBehaviour
         sphereController.SetMode(SphereController.SphereMode.Idle);
         GPTInterfacer.onGPTMessageReceived += UpdateChat;
         SpeechController.onSTT += UpdateChatSTT;
-        reflectionController.ListAllAssemblies();
+        //reflectionController.ListAllAssemblies();
     }
 
     void OnEnable() {
@@ -79,7 +79,8 @@ public class DopeCoderController : MonoBehaviour
         reflectionController.ScanAndPopulateClasses();
 
         // Get the JSON formatted runtime values
-        string jsonSnapshot = reflectionController.GetAllVariableValuesAsJson();
+        //string jsonSnapshot = reflectionController.GetAllVariableValuesAsJson();
+        string jsonSnapshot = reflectionController.GetAllClassInfoAsJson();
         //Debug.Log($"Example json {jsonSnapshot}");
         gptInterfacer.SendRuntimeScanAssistantAsync(jsonSnapshot, true);    // Send the snapshot to GPT Assistant
 

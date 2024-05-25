@@ -46,10 +46,7 @@ public class SphereController : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            SetMode(mode);
-        }
+        //if (Input.GetKeyDown(KeyCode.Space)) SetMode(mode);
 
         switch (currentMode)
         {

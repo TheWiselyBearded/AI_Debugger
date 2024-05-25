@@ -8,6 +8,11 @@ using System.Collections;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.IO;
+using OpenAI.Threads;
+using OpenAI;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Threading;
 
 public class ReflectionRuntimeController : MonoBehaviour {
     public bool ScanCollidersOnly;
@@ -53,10 +58,10 @@ public class ReflectionRuntimeController : MonoBehaviour {
 
     public void ListAllAssemblies() {
         var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-        Debug.Log("Available Assemblies:");
-        foreach (var assembly in assemblies) {
-            Debug.Log(assembly.FullName);
-        }
+        //Debug.Log("Available Assemblies:");
+        //foreach (var assembly in assemblies) {
+        //    Debug.Log(assembly.FullName);
+        //}
     }
 
     public void SetIncludedAssemblies(List<string> assemblyNames) {
@@ -104,7 +109,7 @@ public class ReflectionRuntimeController : MonoBehaviour {
 
 
     void ProcessType(Type type, object script) {
-        Debug.Log(type.FullName + " is used within " + ((MonoBehaviour)script).gameObject.name);
+        //Debug.Log(type.FullName + " is used within " + ((MonoBehaviour)script).gameObject.name);
         var classInfo = new ClassInfo();
 
         // Populate methods with signatures
@@ -199,6 +204,8 @@ public class ReflectionRuntimeController : MonoBehaviour {
         }
     }
 
+    
+
     public void PrintAllVariableValues(string className) {
         if (classCollection.TryGetValue(className, out ClassInfo classInfo)) {
             Debug.Log($"All variables in class {className}:");
@@ -234,6 +241,55 @@ public class ReflectionRuntimeController : MonoBehaviour {
             return $"Class {className} not found.";
         }
     }
+
+    public string GetAllClassInfoAsJson() {
+        JObject jsonResult = new JObject();
+
+        foreach (var classEntry in classCollection) {
+            JObject classObject = new JObject();
+
+            // Add variables
+            JObject variablesObject = new JObject();
+            foreach (var variableEntry in classEntry.Value.Variables) {
+                object variableValue = classEntry.Value.VariableValues.TryGetValue(variableEntry.Key, out object val) ? val : "Unavailable";
+
+                if (variableValue is IDictionary dictionary) {
+                    JObject dictionaryObject = new JObject();
+                    foreach (DictionaryEntry entry in dictionary) {
+                        dictionaryObject.Add(entry.Key.ToString(), entry.Value?.ToString() ?? "null");
+                    }
+                    variablesObject.Add(variableEntry.Key, dictionaryObject);
+                } else {
+                    variablesObject.Add(variableEntry.Key, variableValue?.ToString() ?? "null");
+                }
+            }
+            classObject.Add("Variables", variablesObject);
+
+            // Add methods
+            JArray methodsArray = new JArray();
+            foreach (var methodEntry in classEntry.Value.Methods) {
+                JObject methodObject = new JObject();
+                methodObject.Add("Name", methodEntry.Key);
+
+                JArray parametersArray = new JArray();
+                foreach (var parameter in methodEntry.Value.GetParameters()) {
+                    JObject parameterObject = new JObject();
+                    parameterObject.Add("Name", parameter.Name);
+                    parameterObject.Add("Type", parameter.ParameterType.Name);
+                    parametersArray.Add(parameterObject);
+                }
+                methodObject.Add("Parameters", parametersArray);
+
+                methodsArray.Add(methodObject);
+            }
+            classObject.Add("Methods", methodsArray);
+
+            jsonResult.Add(classEntry.Key, classObject);
+        }
+
+        return jsonResult.ToString(Formatting.Indented);
+    }
+
 
     public string GetAllVariableValuesAsJson() {
         JObject jsonResult = new JObject();
