@@ -9,6 +9,7 @@ using OpenAI.Files;
 using OpenAI.Threads;
 using System.Collections.Generic;
 using System.IO;
+using System.Collections;
 
 [Serializable]
 public class FileReference {
@@ -51,6 +52,21 @@ public class GPTAssistantBuilder : EditorWindow {
     private Vector2 vectorStoreScrollPosition; // Scroll position for vector stores list
     private bool showVectorStores = false; // Variable to manage the visibility of the vector stores list
 
+    private bool showDirectories = false; // Variable to manage the visibility of the directories list
+    private List<string> directories = new List<string>(); // List to store all directories
+    private Vector2 directoryScrollPosition; // Scroll position for directories list
+    private Dictionary<string, bool> directorySelection = new Dictionary<string, bool>(); // Dictionary to store the selection state of each directory
+    private Dictionary<string, bool> directoryFoldouts = new Dictionary<string, bool>(); // Store foldout state for each directory
+    private Dictionary<string, List<string>> directoryFiles = new Dictionary<string, List<string>>(); // Store files for each directory
+    private Dictionary<string, Dictionary<string, bool>> directoryFileSelection = new Dictionary<string, Dictionary<string, bool>>(); // Store selection state for each file within each directory
+    private List<string> additionalDirectories = new List<string>(); // List to store additional directories
+    private bool showAssets = false; // Foldout state for Assets
+    private bool showLibraryPackageCache = false; // Foldout state for Library/PackageCache
+
+    private List<string> availableModels = new List<string>();
+    private int selectedModelIndex = 0;
+
+    private GPTUtilities gptUtilities;
 
 
     [MenuItem("Tools/DopeCoder/GPT Assistant Builder")]
@@ -58,31 +74,55 @@ public class GPTAssistantBuilder : EditorWindow {
         GetWindow<GPTAssistantBuilder>("GPT Assistant Builder");
     }
 
-    private GPTUtilities gptUtilities;
 
     private void OnEnable() {
         LoadFilesFromEditorPrefs();
         LoadAssistantId();
         gptUtilities = new GPTUtilities();
         gptUtilities.Init();
+
+        // Start the coroutine to fetch available models
+        EditorApplication.update += FetchAvailableModels;
+
         if (!string.IsNullOrEmpty(assistantId)) {
             LoadAssistant(assistantId); // Automatically load the assigned assistant
         } else {
             ListAssistantsAsync();
         }
+        ApplyAssistantIdToInterfacer();
+        LoadAllDirectories(); // Load directories on enable
     }
 
 
     private void OnDisable() {
+        gptUtilities.vectorStoreAPI = null;
         SaveFilesToEditorPrefs();
     }
 
+    private void FetchAvailableModels() {
+        // Unsubscribe from update event once we start the model fetching process
+        EditorApplication.update -= FetchAvailableModels;
+        _ = FetchAvailableModelsAsync();
+    }
+
+    private async Task FetchAvailableModelsAsync() {
+        availableModels = await gptUtilities.GetAvailableModelsAsync();
+        Repaint(); // Repaint the editor window to update the dropdown
+    }
+
+
     private void OnGUI() {
         GUILayout.Label("GPT Assistant Builder", EditorStyles.boldLabel);
-
         GUILayout.Space(10);
 
-        // Section to display assigned assistant details
+        DrawAssistantDetails();
+        //DrawLocalFilesSection(); // TODO: revisit this functionality (supporting more file formats with drag/drop)
+        DrawDirectoriesSection();
+        DrawAssistantActions();
+        DrawAssistantsListSection();
+    }
+
+    private void DrawAssistantDetails() {
         if (assignedAssistant != null) {
             GUILayout.Label($"Assigned Assistant: {assignedAssistant.Name} ({assignedAssistant.Id})", EditorStyles.boldLabel);
 
@@ -108,14 +148,7 @@ public class GPTAssistantBuilder : EditorWindow {
 
             GUILayout.Space(10);
 
-            // Unload button
-            if (GUILayout.Button("Unload Assistant")) {
-                UnloadAssistant();
-            }
-        }
-
-        // Section to select and upload a file to the assistant
-        if (assignedAssistant != null) {
+            // Section to select and upload a file to the assistant
             GUILayout.Label("Upload File to Assistant", EditorStyles.boldLabel);
             if (GUILayout.Button("Select File to Upload")) {
                 string path = EditorUtility.OpenFilePanel("Select File to Upload", "", "");
@@ -125,14 +158,17 @@ public class GPTAssistantBuilder : EditorWindow {
             }
 
             GUILayout.Space(10);
-        }
 
-        if (isCreatingOrUpdating) {
+            // Unload button
+            if (GUILayout.Button("Unload Assistant")) {
+                UnloadAssistant();
+            }
+
             GUILayout.Space(20);
-            EditorGUILayout.LabelField("Processing...", EditorStyles.boldLabel);
         }
+    }
 
-        // Collapsible section for uploading and listing local files
+    private void DrawLocalFilesSection() {
         showFileList = EditorGUILayout.Foldout(showFileList, "Local Files");
         if (showFileList) {
             // Drop area for uploading files
@@ -181,20 +217,98 @@ public class GPTAssistantBuilder : EditorWindow {
                 GUILayout.Space(10);
             }
             EditorGUILayout.EndScrollView();
+
+            GUILayout.Space(10);
+
+            if (GUILayout.Button("Save Files to EditorPrefs")) {
+                SaveFilesToEditorPrefs();
+            }
+
+            GUILayout.Space(20);
+        }
+    }
+    private void DrawDirectoriesSection() {
+        showDirectories = EditorGUILayout.Foldout(showDirectories, "All Directories");
+        if (showDirectories) {
+            directoryScrollPosition = EditorGUILayout.BeginScrollView(directoryScrollPosition, GUILayout.Height(200)); // Set a height for the scroll view
+
+            // Foldout for Assets
+            showAssets = EditorGUILayout.Foldout(showAssets, "Assets");
+            if (showAssets) {
+                foreach (string dir in directories) {
+                    DrawDirectoryAndFiles(dir);
+                }
+            }
+
+            // Foldout for Library/PackageCache
+            showLibraryPackageCache = EditorGUILayout.Foldout(showLibraryPackageCache, "Library/PackageCache");
+            if (showLibraryPackageCache) {
+                foreach (string dir in additionalDirectories) {
+                    DrawDirectoryAndFiles(dir);
+                }
+            }
+
+            EditorGUILayout.EndScrollView();
+
+            // Add upload button
+            GUILayout.Space(10);
+            if (GUILayout.Button("Upload Selected Files to Assistant Vector Store")) {
+                UploadSelectedFilesToAssistantVectorStore();
+            }
+        }
+    }
+
+    private async void UploadSelectedFilesToAssistantVectorStore() {
+        if (string.IsNullOrEmpty(assistantId) || !vectorStores.Any()) {
+            Debug.LogError("No assistant assigned or no vector stores available.");
+            return;
         }
 
-        GUILayout.Space(20);
+        string vectorStoreId = vectorStores.First().Id;
+        int totalFiles = directoryFileSelection.Values.SelectMany(d => d.Values).Count(v => v);
+        int uploadedFiles = 0;
 
-        if (GUILayout.Button("Save Files to EditorPrefs")) {
-            SaveFilesToEditorPrefs();
+        try {
+            foreach (var dir in directoryFileSelection) {
+                foreach (var fileEntry in dir.Value) {
+                    if (fileEntry.Value) {
+                        string dataPath = Application.dataPath;
+                        string projectPath = dataPath.Substring(0, dataPath.Length - "Assets".Length);
+                        string fullPath = Path.GetFullPath(Path.Combine(projectPath, fileEntry.Key));
+                        fullPath = fullPath.Replace("\\", "/"); // Ensure forward slashes
+                        Debug.Log($"Uploading file: {fullPath}"); // Debugging line to check the file paths
+
+                        await gptUtilities.CreateAndUploadVectorStoreFile(vectorStoreId, fullPath);
+                        uploadedFiles++;
+                        EditorUtility.DisplayProgressBar("Uploading Files", $"Uploading {uploadedFiles}/{totalFiles} files...", (float)uploadedFiles / totalFiles);
+                    }
+                }
+            }
+            Debug.Log("All selected files have been uploaded successfully.");
+            LoadAssistant(assistantId);
+        } catch (Exception e) {
+            Debug.LogError($"Error during file upload: {e.Message}");
+        } finally {
+            EditorUtility.ClearProgressBar();
         }
+    }
 
 
-        GUILayout.Space(20);
 
+
+    private void DrawAssistantActions() {
+        // Assistant Details and Actions
         EditorGUILayout.LabelField("Assistant Details:");
         assistantName = EditorGUILayout.TextField("Assistant Name", assistantName);
-        modelType = EditorGUILayout.TextField("Model Type", modelType);
+
+        // Dropdown for model selection
+        if (availableModels.Count > 0) {
+            selectedModelIndex = EditorGUILayout.Popup("Select Model", selectedModelIndex, availableModels.ToArray());
+            modelType = availableModels[selectedModelIndex];
+        } else {
+            EditorGUILayout.LabelField("Model Type", EditorStyles.boldLabel);
+            modelType = EditorGUILayout.TextField("Model Type", modelType);
+        }
 
         GUILayout.Space(20);
 
@@ -210,12 +324,12 @@ public class GPTAssistantBuilder : EditorWindow {
             DeleteAssistantAsync();
         }
 
-        // ASSISTANT CRUD OPERATIONS
         if (GUILayout.Button("List Assistants")) {
             ListAssistantsAsync();
         }
+    }
 
-        // Collapsible section for listing assistants
+    private void DrawAssistantsListSection() {
         showAssistantsList = EditorGUILayout.Foldout(showAssistantsList, "Assistants List");
         if (showAssistantsList) {
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.Height(200)); // Set a height for the scroll view
@@ -246,24 +360,53 @@ public class GPTAssistantBuilder : EditorWindow {
             }
             EditorGUILayout.EndScrollView();
         }
+    }
 
-        // Section to select and upload a file to the assistant
-        if (assignedAssistant != null) {
-            GUILayout.Label("Upload File to Assistant", EditorStyles.boldLabel);
-            if (GUILayout.Button("Select File to Upload")) {
-                string path = EditorUtility.OpenFilePanel("Select File to Upload", "", "");
-                if (!string.IsNullOrEmpty(path)) {
-                    UploadFileToAssistantAsync(path);
-                }
+
+    private void DrawDirectoryAndFiles(string dir) {
+        EditorGUILayout.BeginHorizontal();
+        bool newDirSelection = EditorGUILayout.Toggle(directorySelection[dir], GUILayout.Width(20));
+        if (newDirSelection != directorySelection[dir]) {
+            directorySelection[dir] = newDirSelection;
+            // Update file selection based on directory selection
+            foreach (var file in directoryFiles[dir]) {
+                directoryFileSelection[dir][file] = newDirSelection;
+            }
+        }
+        directoryFoldouts[dir] = EditorGUILayout.Foldout(directoryFoldouts[dir], dir);
+        EditorGUILayout.EndHorizontal();
+
+        if (directoryFoldouts[dir]) {
+            foreach (string file in directoryFiles[dir]) {
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Space(20); // Indent files
+                directoryFileSelection[dir][file] = EditorGUILayout.Toggle(directoryFileSelection[dir][file], GUILayout.Width(20));
+                EditorGUILayout.LabelField(file);
+                EditorGUILayout.EndHorizontal();
             }
 
-            GUILayout.Space(10);
+            // Recursively draw subdirectories and files
+            foreach (string subDir in directories.Where(d => d.StartsWith(dir + Path.DirectorySeparatorChar))) {
+                DrawDirectoryAndFiles(subDir);
+            }
         }
 
-        if (isCreatingOrUpdating) {
-            GUILayout.Space(20);
-            EditorGUILayout.LabelField("Processing...", EditorStyles.boldLabel);
+        GUILayout.Space(10);
+    }
+
+
+
+
+    private void ApplyAssistantIdToInterfacer() {
+        // Find the GPTInterfacer in the active scene
+        GPTInterfacer gptInterfacer = FindObjectOfType<GPTInterfacer>();
+        if (gptInterfacer != null) {
+            gptInterfacer.AssistantID = assistantId;
+            Debug.Log($"AssistantID set to GPTInterfacer: {assistantId}");
+        } else {
+            Debug.LogWarning("GPTInterfacer not found in the scene.");
         }
+        EditorUtility.SetDirty(gptInterfacer);
     }
 
     private async void UploadFileToAssistantAsync(string filePath) {
@@ -298,6 +441,79 @@ public class GPTAssistantBuilder : EditorWindow {
             files = newFiles;
         }
     }
+
+    private void LoadAllDirectories() {
+        directories.Clear();
+        directorySelection.Clear();
+        directoryFoldouts.Clear();
+        directoryFiles.Clear();
+        directoryFileSelection.Clear();
+        additionalDirectories.Clear();
+
+        // Load directories and files within Assets
+        string[] allDirectories = Directory.GetDirectories(Application.dataPath, "*", SearchOption.AllDirectories);
+        foreach (string dir in allDirectories) {
+            string relativePath = "Assets" + dir.Substring(Application.dataPath.Length);
+            if (LoadDirectoryFiles(dir, relativePath)) {
+                directories.Add(relativePath);
+                directorySelection[relativePath] = false;
+                directoryFoldouts[relativePath] = false;
+            }
+        }
+
+        // Load directories and files within Library/PackageCache
+        string libraryPackageCachePath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Library/PackageCache");
+        if (Directory.Exists(libraryPackageCachePath)) {
+            string[] packageCacheDirectories = Directory.GetDirectories(libraryPackageCachePath, "*", SearchOption.AllDirectories);
+            foreach (string dir in packageCacheDirectories) {
+                string relativePath = "Library/PackageCache" + dir.Substring(libraryPackageCachePath.Length);
+                if (LoadDirectoryFiles(dir, relativePath)) {
+                    additionalDirectories.Add(relativePath);
+                    directorySelection[relativePath] = false;
+                    directoryFoldouts[relativePath] = false;
+                }
+            }
+        }
+    }
+
+    private bool LoadDirectoryFiles(string dir, string relativePath) {
+        // Load relevant files within the directory
+        string[] files = Directory.GetFiles(dir)
+            .Where(file => file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) ||
+                           file.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ||
+                           file.EndsWith(".md", StringComparison.OrdinalIgnoreCase) ||
+                           file.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        if (files.Length == 0) {
+            return false; // Skip directories that don't contain relevant files
+        }
+
+        List<string> relativeFiles = new List<string>();
+        Dictionary<string, bool> fileSelection = new Dictionary<string, bool>();
+        foreach (string file in files) {
+            string relativeFilePath = relativePath + file.Substring(dir.Length);
+            relativeFiles.Add(relativeFilePath);
+            fileSelection[relativeFilePath] = false; // Initialize selection state
+        }
+        directoryFiles[relativePath] = relativeFiles;
+        directoryFileSelection[relativePath] = fileSelection;
+
+        // Recursively load subdirectories
+        string[] subDirectories = Directory.GetDirectories(dir);
+        foreach (string subDir in subDirectories) {
+            string subRelativePath = relativePath + subDir.Substring(dir.Length);
+            if (LoadDirectoryFiles(subDir, subRelativePath)) {
+                directories.Add(subRelativePath);
+                directorySelection[subRelativePath] = false;
+                directoryFoldouts[subRelativePath] = false;
+            }
+        }
+
+        return true; // Include this directory
+    }
+
+
 
     private void SaveFilesToEditorPrefs() {
         string[] assetPaths = files.Select(file => file.assetPath).ToArray();
@@ -408,6 +624,10 @@ public class GPTAssistantBuilder : EditorWindow {
         var filesListResponse = await api.AssistantsEndpoint.ListFilesAsync(assistantIdToLoad);
         assistantFiles = filesListResponse.Items.ToList();
         assistantId = assistantIdToLoad;
+
+        // Apply the assistantId to the GPTInterfacer
+        ApplyAssistantIdToInterfacer();
+
         EditorPrefs.SetString("AssistantId", assistantId);
         Debug.Log($"Loaded assistant {assistantId}");
 

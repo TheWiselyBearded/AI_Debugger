@@ -37,6 +37,13 @@ public class SphereController : MonoBehaviour
     private Coroutine scaleChangeCoroutine;
     private bool isScaling = false;
 
+    private void Awake() {
+        AudioManager.onFinishedTalking += AudioManager_onFinishedTalking;
+    }
+
+    private void AudioManager_onFinishedTalking() => SetMode(SphereMode.Idle);
+    
+
     void Start()
     {
         rend = GetComponent<Renderer>();
@@ -46,10 +53,7 @@ public class SphereController : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            SetMode(mode);
-        }
+        //if (Input.GetKeyDown(KeyCode.Space)) SetMode(mode);
 
         switch (currentMode)
         {

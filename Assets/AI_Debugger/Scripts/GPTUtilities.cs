@@ -7,13 +7,16 @@ using System.Threading.Tasks;
 using UnityEngine;
 using Newtonsoft.Json;
 using OpenAI;
+using System.Linq;
 
-public class GPTUtilities : MonoBehaviour {
+public class GPTUtilities {
     public VectorStoreApiClient vectorStoreAPI;
     public OpenAIConfiguration openAIConfiguration;
+    private string vectorStoreId = "";
+    private HttpClient httpClient;
 
-    private void Awake() {
-        Init();
+    public GPTUtilities() {
+        httpClient = new HttpClient();
     }
 
     public void Init() {
@@ -24,26 +27,19 @@ public class GPTUtilities : MonoBehaviour {
         vectorStoreAPI = new VectorStoreApiClient(openAIConfiguration.ApiKey);
     }
 
-    private string vectorStoreId = "";
+    public async Task<List<string>> GetAvailableModelsAsync() {
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://api.openai.com/v1/models");
+        request.Headers.Add("Authorization", $"Bearer {openAIConfiguration.ApiKey}");
 
-    private void Update() {
-        if (Input.GetKeyDown(KeyCode.Space)) {
-            Task.Run(async () => await ListVectorStoreFiles(vectorStoreId));
-        }
+        var response = await httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
 
-        // Example key press to list files of a specific vector store
-        if (Input.GetKeyDown(KeyCode.F)) {
-            string vectorStoreId = "vs_IQouoS93fujZfY1ptX8y7Lss"; // Replace with the actual vector store ID
-            Task.Run(async () => await ListVectorStoreFiles(vectorStoreId));
-        }
+        var responseBody = await response.Content.ReadAsStringAsync();
+        var jsonResponse = JsonConvert.DeserializeObject<OpenAIModelsResponse>(responseBody);
 
-        // Example key press to create a vector store file
-        if (Input.GetKeyDown(KeyCode.C)) {
-            string filePath = @"C:\Users\abahrema\Documents\Projects\AI_Debugger\Assets\AI_Debugger\Scripts\GPTUtilities.cs"; // Replace with the actual file path
-            Task.Run(async () => await CreateAndUploadVectorStoreFile(vectorStoreId, filePath));
-        }
-
+        return jsonResponse.data.Select(model => model.id).ToList();
     }
+
 
     public async Task ListVectorStores() {
         if (openAIConfiguration == null) {
@@ -117,36 +113,30 @@ public class GPTUtilities : MonoBehaviour {
 }
 
 public class VectorStoreApiClient {
-    private static readonly HttpClient client = new HttpClient();
+    private readonly HttpClient _httpClient;
     private string apiKey;
 
 
     public VectorStoreApiClient(string apiKey) {
-        client.BaseAddress = new Uri("https://api.openai.com/");
-        ConfigureClient(apiKey);
-    }
-
-    private static void ConfigureClient(string apiKey) {
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        client.DefaultRequestHeaders.Add("OpenAI-Beta", "assistants=v2");
+        _httpClient = new HttpClient {
+            BaseAddress = new Uri("https://api.openai.com/")
+        };
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        _httpClient.DefaultRequestHeaders.Add("OpenAI-Beta", "assistants=v2");
     }
 
     public async Task<VectorStoreListResponse> GetVectorStoresAsync() {
-        var response = await client.GetAsync("v1/vector_stores");
-
-        if (response.IsSuccessStatusCode) {
-            var jsonResponse = await response.Content.ReadAsStringAsync();
-            return JsonConvert.DeserializeObject<VectorStoreListResponse>(jsonResponse);
-        } else {
-            throw new HttpRequestException($"Request failed with status code: {response.StatusCode}");
-        }
+        var response = await _httpClient.GetAsync("v1/vector_stores");
+        response.EnsureSuccessStatusCode();
+        var content = await response.Content.ReadAsStringAsync();
+        return JsonConvert.DeserializeObject<VectorStoreListResponse>(content);
     }
 
-  
+    
 
     public async Task<VectorStoreFileListResponse> ListVectorStoreFilesAsync(string vectorStoreId) {
-        var response = await client.GetAsync($"v1/vector_stores/{vectorStoreId}/files");
+        var response = await _httpClient.GetAsync($"v1/vector_stores/{vectorStoreId}/files");
 
         if (response.IsSuccessStatusCode) {
             var jsonResponse = await response.Content.ReadAsStringAsync();
@@ -165,7 +155,7 @@ public class VectorStoreApiClient {
 
         var jsonContent = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
 
-        var response = await client.PostAsync($"v1/vector_stores/{vectorStoreId}/files", jsonContent);
+        var response = await _httpClient.PostAsync($"v1/vector_stores/{vectorStoreId}/files", jsonContent);
 
         if (response.IsSuccessStatusCode) {
             var jsonResponse = await response.Content.ReadAsStringAsync();
@@ -190,7 +180,7 @@ public class VectorStoreApiClient {
 
         var jsonContent = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
 
-        var response = await client.PostAsync("v1/files", jsonContent);
+        var response = await _httpClient.PostAsync("v1/files", jsonContent);
 
         if (response.IsSuccessStatusCode) {
             var jsonResponse = await response.Content.ReadAsStringAsync();
@@ -210,7 +200,7 @@ public class VectorStoreApiClient {
         form.Add(fileContent, "file", System.IO.Path.GetFileName(filePath));
         form.Add(new StringContent("assistants"), "purpose");
 
-        var response = await client.PostAsync("v1/files", form);
+        var response = await _httpClient.PostAsync("v1/files", form);
 
         if (response.IsSuccessStatusCode) {
             var jsonResponse = await response.Content.ReadAsStringAsync();
@@ -223,6 +213,22 @@ public class VectorStoreApiClient {
     }
 
 
+}
+
+public class OpenAIModelsResponse {
+    [JsonProperty("data")]
+    public List<OpenAIModel> data;
+}
+
+public class OpenAIModel {
+    [JsonProperty("id")]
+    public string id;
+
+    [JsonProperty("created")]
+    public string created;
+
+    [JsonProperty("owned_by")]
+    public string owned_by;
 }
 
 public class VectorStoreListResponse {
