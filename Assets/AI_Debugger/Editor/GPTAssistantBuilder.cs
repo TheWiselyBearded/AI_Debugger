@@ -96,7 +96,7 @@ public class GPTAssistantBuilder : EditorWindow {
         GUILayout.Space(10);
 
         DrawAssistantDetails();
-        DrawLocalFilesSection();
+        //DrawLocalFilesSection(); // TODO: revisit this functionality (supporting more file formats with drag/drop)
         DrawDirectoriesSection();
         DrawAssistantActions();
         DrawAssistantsListSection();
@@ -207,7 +207,6 @@ public class GPTAssistantBuilder : EditorWindow {
             GUILayout.Space(20);
         }
     }
-
     private void DrawDirectoriesSection() {
         showDirectories = EditorGUILayout.Foldout(showDirectories, "All Directories");
         if (showDirectories) {
@@ -230,8 +229,52 @@ public class GPTAssistantBuilder : EditorWindow {
             }
 
             EditorGUILayout.EndScrollView();
+
+            // Add upload button
+            GUILayout.Space(10);
+            if (GUILayout.Button("Upload Selected Files to Assistant Vector Store")) {
+                UploadSelectedFilesToAssistantVectorStore();
+            }
         }
     }
+
+    private async void UploadSelectedFilesToAssistantVectorStore() {
+        if (string.IsNullOrEmpty(assistantId) || !vectorStores.Any()) {
+            Debug.LogError("No assistant assigned or no vector stores available.");
+            return;
+        }
+
+        string vectorStoreId = vectorStores.First().Id;
+        int totalFiles = directoryFileSelection.Values.SelectMany(d => d.Values).Count(v => v);
+        int uploadedFiles = 0;
+
+        try {
+            foreach (var dir in directoryFileSelection) {
+                foreach (var fileEntry in dir.Value) {
+                    if (fileEntry.Value) {
+                        string dataPath = Application.dataPath;
+                        string projectPath = dataPath.Substring(0, dataPath.Length - "Assets".Length);
+                        string fullPath = Path.GetFullPath(Path.Combine(projectPath, fileEntry.Key));
+                        fullPath = fullPath.Replace("\\", "/"); // Ensure forward slashes
+                        Debug.Log($"Uploading file: {fullPath}"); // Debugging line to check the file paths
+
+                        await gptUtilities.CreateAndUploadVectorStoreFile(vectorStoreId, fullPath);
+                        uploadedFiles++;
+                        EditorUtility.DisplayProgressBar("Uploading Files", $"Uploading {uploadedFiles}/{totalFiles} files...", (float)uploadedFiles / totalFiles);
+                    }
+                }
+            }
+            Debug.Log("All selected files have been uploaded successfully.");
+            LoadAssistant(assistantId);
+        } catch (Exception e) {
+            Debug.LogError($"Error during file upload: {e.Message}");
+        } finally {
+            EditorUtility.ClearProgressBar();
+        }
+    }
+
+
+
 
     private void DrawAssistantActions() {
         // Assistant Details and Actions
