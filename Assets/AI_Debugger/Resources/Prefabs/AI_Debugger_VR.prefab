@@ -5365,11 +5365,6 @@ MonoBehaviour:
     debugMode: 1
     tts: 0
     saveLogs: 0
-  systemPrompt: 'You are a helpful AI debugging assistant that helps me interface
-    and understand my code with the Reflection library.
-
-    - If an image is requested
-    then use "![Image](output.jpg)" to display it.'
   KeywordEventManager: {fileID: 1796559839208905452}
   sphereController: {fileID: 7389382506532930093}
   reflectionController: {fileID: 2491141586073827901}

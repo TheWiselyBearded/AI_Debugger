@@ -37,6 +37,13 @@ public class SphereController : MonoBehaviour
     private Coroutine scaleChangeCoroutine;
     private bool isScaling = false;
 
+    private void Awake() {
+        AudioManager.onFinishedTalking += AudioManager_onFinishedTalking;
+    }
+
+    private void AudioManager_onFinishedTalking() => SetMode(SphereMode.Idle);
+    
+
     void Start()
     {
         rend = GetComponent<Renderer>();

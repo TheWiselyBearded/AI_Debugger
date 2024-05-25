@@ -20,9 +20,9 @@ public class DopeCoderController : MonoBehaviour
     [SerializeField]
     public DopeCoderSettings Settings;
 
-    [SerializeField]
-    [TextArea(3, 10)]
-    private string systemPrompt = "You are a helpful AI debugging assistant that helps me interface and understand my code with the Reflection library.\n- If an image is requested then use \"![Image](output.jpg)\" to display it.";
+    //[SerializeField]
+    //[TextArea(3, 10)]
+    //private string systemPrompt = "You are a helpful AI debugging assistant that helps me interface and understand my code with the Reflection library.\n- If an image is requested then use \"![Image](output.jpg)\" to display it.";
 
     public KeywordEventManager KeywordEventManager;
     public SphereController sphereController;
@@ -56,7 +56,8 @@ public class DopeCoderController : MonoBehaviour
     private void Start()
     {
         gptInterfacer.openAI.EnableDebug = Settings.debugMode;
-        gptInterfacer.conversation.AppendMessage(new Message(Role.System, systemPrompt));
+        //gptInterfacer.conversation.AppendMessage(new Message(Role.System, systemPrompt));
+        
         //inputField.onSubmit.AddListener(SubmitChat);
         //submitButton.onClick.AddListener(SubmitChat);
         uiController.recordButton.onClick.AddListener(speechController.ToggleRecording);
@@ -99,7 +100,7 @@ public class DopeCoderController : MonoBehaviour
     public void UpdateChat(string newText, MessageColorMode.MessageType msgType = MessageColorMode.MessageType.Sender)
     {
         uiController.UpdateChat(newText, msgType);
-        if (msgType == MessageColorMode.MessageType.Receiver) sphereController.SetMode(SphereController.SphereMode.Talking);
+        if (Settings.tts && msgType == MessageColorMode.MessageType.Receiver) sphereController.SetMode(SphereController.SphereMode.Talking);
         if (msgType == MessageColorMode.MessageType.Sender) sphereController.SetMode(SphereController.SphereMode.Listening);
 
     }
