@@ -9,6 +9,7 @@ using OpenAI.Files;
 using OpenAI.Threads;
 using System.Collections.Generic;
 using System.IO;
+using System.Collections;
 
 [Serializable]
 public class FileReference {
@@ -62,6 +63,10 @@ public class GPTAssistantBuilder : EditorWindow {
     private bool showAssets = false; // Foldout state for Assets
     private bool showLibraryPackageCache = false; // Foldout state for Library/PackageCache
 
+    private List<string> availableModels = new List<string>();
+    private int selectedModelIndex = 0;
+
+    private GPTUtilities gptUtilities;
 
 
     [MenuItem("Tools/DopeCoder/GPT Assistant Builder")]
@@ -69,13 +74,16 @@ public class GPTAssistantBuilder : EditorWindow {
         GetWindow<GPTAssistantBuilder>("GPT Assistant Builder");
     }
 
-    private GPTUtilities gptUtilities;
 
     private void OnEnable() {
         LoadFilesFromEditorPrefs();
         LoadAssistantId();
         gptUtilities = new GPTUtilities();
         gptUtilities.Init();
+
+        // Start the coroutine to fetch available models
+        EditorApplication.update += FetchAvailableModels;
+
         if (!string.IsNullOrEmpty(assistantId)) {
             LoadAssistant(assistantId); // Automatically load the assigned assistant
         } else {
@@ -90,6 +98,18 @@ public class GPTAssistantBuilder : EditorWindow {
         gptUtilities.vectorStoreAPI = null;
         SaveFilesToEditorPrefs();
     }
+
+    private void FetchAvailableModels() {
+        // Unsubscribe from update event once we start the model fetching process
+        EditorApplication.update -= FetchAvailableModels;
+        _ = FetchAvailableModelsAsync();
+    }
+
+    private async Task FetchAvailableModelsAsync() {
+        availableModels = await gptUtilities.GetAvailableModelsAsync();
+        Repaint(); // Repaint the editor window to update the dropdown
+    }
+
 
     private void OnGUI() {
         GUILayout.Label("GPT Assistant Builder", EditorStyles.boldLabel);
@@ -280,7 +300,15 @@ public class GPTAssistantBuilder : EditorWindow {
         // Assistant Details and Actions
         EditorGUILayout.LabelField("Assistant Details:");
         assistantName = EditorGUILayout.TextField("Assistant Name", assistantName);
-        modelType = EditorGUILayout.TextField("Model Type", modelType);
+
+        // Dropdown for model selection
+        if (availableModels.Count > 0) {
+            selectedModelIndex = EditorGUILayout.Popup("Select Model", selectedModelIndex, availableModels.ToArray());
+            modelType = availableModels[selectedModelIndex];
+        } else {
+            EditorGUILayout.LabelField("Model Type", EditorStyles.boldLabel);
+            modelType = EditorGUILayout.TextField("Model Type", modelType);
+        }
 
         GUILayout.Space(20);
 

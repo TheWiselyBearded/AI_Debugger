@@ -7,11 +7,17 @@ using System.Threading.Tasks;
 using UnityEngine;
 using Newtonsoft.Json;
 using OpenAI;
+using System.Linq;
 
 public class GPTUtilities {
     public VectorStoreApiClient vectorStoreAPI;
     public OpenAIConfiguration openAIConfiguration;
+    private string vectorStoreId = "";
+    private HttpClient httpClient;
 
+    public GPTUtilities() {
+        httpClient = new HttpClient();
+    }
 
     public void Init() {
         openAIConfiguration = Resources.Load<OpenAIConfiguration>("OpenAIConfiguration");
@@ -21,9 +27,19 @@ public class GPTUtilities {
         vectorStoreAPI = new VectorStoreApiClient(openAIConfiguration.ApiKey);
     }
 
-    private string vectorStoreId = "";
+    public async Task<List<string>> GetAvailableModelsAsync() {
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://api.openai.com/v1/models");
+        request.Headers.Add("Authorization", $"Bearer {openAIConfiguration.ApiKey}");
 
-    
+        var response = await httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+        var jsonResponse = JsonConvert.DeserializeObject<OpenAIModelsResponse>(responseBody);
+
+        return jsonResponse.data.Select(model => model.id).ToList();
+    }
+
 
     public async Task ListVectorStores() {
         if (openAIConfiguration == null) {
@@ -117,7 +133,7 @@ public class VectorStoreApiClient {
         return JsonConvert.DeserializeObject<VectorStoreListResponse>(content);
     }
 
-
+    
 
     public async Task<VectorStoreFileListResponse> ListVectorStoreFilesAsync(string vectorStoreId) {
         var response = await _httpClient.GetAsync($"v1/vector_stores/{vectorStoreId}/files");
@@ -197,6 +213,22 @@ public class VectorStoreApiClient {
     }
 
 
+}
+
+public class OpenAIModelsResponse {
+    [JsonProperty("data")]
+    public List<OpenAIModel> data;
+}
+
+public class OpenAIModel {
+    [JsonProperty("id")]
+    public string id;
+
+    [JsonProperty("created")]
+    public string created;
+
+    [JsonProperty("owned_by")]
+    public string owned_by;
 }
 
 public class VectorStoreListResponse {
