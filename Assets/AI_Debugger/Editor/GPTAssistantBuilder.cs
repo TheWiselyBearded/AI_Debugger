@@ -51,6 +51,15 @@ public class GPTAssistantBuilder : EditorWindow {
     private Vector2 vectorStoreScrollPosition; // Scroll position for vector stores list
     private bool showVectorStores = false; // Variable to manage the visibility of the vector stores list
 
+    private bool showDirectories = false; // Variable to manage the visibility of the directories list
+    private List<string> directories = new List<string>(); // List to store all directories
+    private Vector2 directoryScrollPosition; // Scroll position for directories list
+    private Dictionary<string, bool> directorySelection = new Dictionary<string, bool>(); // Dictionary to store the selection state of each directory
+    private Dictionary<string, bool> directoryFoldouts = new Dictionary<string, bool>(); // Store foldout state for each directory
+    private Dictionary<string, List<string>> directoryFiles = new Dictionary<string, List<string>>(); // Store files for each directory
+    private Dictionary<string, Dictionary<string, bool>> directoryFileSelection = new Dictionary<string, Dictionary<string, bool>>(); // Store selection state for each file within each directory
+    private List<string> additionalDirectories = new List<string>(); // List to store additional directories
+
 
 
     [MenuItem("Tools/DopeCoder/GPT Assistant Builder")]
@@ -71,6 +80,7 @@ public class GPTAssistantBuilder : EditorWindow {
             ListAssistantsAsync();
         }
         ApplyAssistantIdToInterfacer();
+        LoadAllDirectories(); // Load directories on enable
     }
 
 
@@ -110,14 +120,7 @@ public class GPTAssistantBuilder : EditorWindow {
 
             GUILayout.Space(10);
 
-            // Unload button
-            if (GUILayout.Button("Unload Assistant")) {
-                UnloadAssistant();
-            }
-        }
-
-        // Section to select and upload a file to the assistant
-        if (assignedAssistant != null) {
+            // Section to select and upload a file to the assistant
             GUILayout.Label("Upload File to Assistant", EditorStyles.boldLabel);
             if (GUILayout.Button("Select File to Upload")) {
                 string path = EditorUtility.OpenFilePanel("Select File to Upload", "", "");
@@ -127,11 +130,13 @@ public class GPTAssistantBuilder : EditorWindow {
             }
 
             GUILayout.Space(10);
-        }
 
-        if (isCreatingOrUpdating) {
+            // Unload button
+            if (GUILayout.Button("Unload Assistant")) {
+                UnloadAssistant();
+            }
+
             GUILayout.Space(20);
-            EditorGUILayout.LabelField("Processing...", EditorStyles.boldLabel);
         }
 
         // Collapsible section for uploading and listing local files
@@ -183,17 +188,32 @@ public class GPTAssistantBuilder : EditorWindow {
                 GUILayout.Space(10);
             }
             EditorGUILayout.EndScrollView();
+
+            GUILayout.Space(10);
+
+            if (GUILayout.Button("Save Files to EditorPrefs")) {
+                SaveFilesToEditorPrefs();
+            }
+
+            GUILayout.Space(20);
         }
 
-        GUILayout.Space(20);
-
-        if (GUILayout.Button("Save Files to EditorPrefs")) {
-            SaveFilesToEditorPrefs();
+        // Collapsible section for listing all directories
+        showDirectories = EditorGUILayout.Foldout(showDirectories, "All Directories");
+        if (showDirectories) {
+            directoryScrollPosition = EditorGUILayout.BeginScrollView(directoryScrollPosition, GUILayout.Height(200)); // Set a height for the scroll view
+                                                                                                                       // List directories within Assets
+            foreach (string dir in directories) {
+                DrawDirectoryAndFiles(dir);
+            }
+            // List directories within Library/PackageCache
+            foreach (string dir in additionalDirectories) {
+                DrawDirectoryAndFiles(dir);
+            }
+            EditorGUILayout.EndScrollView();
         }
 
-
-        GUILayout.Space(20);
-
+        // Assistant Details and Actions
         EditorGUILayout.LabelField("Assistant Details:");
         assistantName = EditorGUILayout.TextField("Assistant Name", assistantName);
         modelType = EditorGUILayout.TextField("Model Type", modelType);
@@ -204,11 +224,14 @@ public class GPTAssistantBuilder : EditorWindow {
             CreateOrUpdateAssistantAsync();
         }
 
+        if (GUILayout.Button("Attach Files to Assistant")) {
+            AttachFilesToAssistantAsync();
+        }
+
         if (!string.IsNullOrEmpty(assistantId) && GUILayout.Button("Delete Assistant")) {
             DeleteAssistantAsync();
         }
 
-        // ASSISTANT CRUD OPERATIONS
         if (GUILayout.Button("List Assistants")) {
             ListAssistantsAsync();
         }
@@ -244,12 +267,41 @@ public class GPTAssistantBuilder : EditorWindow {
             }
             EditorGUILayout.EndScrollView();
         }
-
-        if (isCreatingOrUpdating) {
-            GUILayout.Space(20);
-            EditorGUILayout.LabelField("Processing...", EditorStyles.boldLabel);
-        }
     }
+
+    private void DrawDirectoryAndFiles(string dir) {
+        EditorGUILayout.BeginHorizontal();
+        bool newDirSelection = EditorGUILayout.Toggle(directorySelection[dir], GUILayout.Width(20));
+        if (newDirSelection != directorySelection[dir]) {
+            directorySelection[dir] = newDirSelection;
+            // Update file selection based on directory selection
+            foreach (var file in directoryFiles[dir]) {
+                directoryFileSelection[dir][file] = newDirSelection;
+            }
+        }
+        directoryFoldouts[dir] = EditorGUILayout.Foldout(directoryFoldouts[dir], dir);
+        EditorGUILayout.EndHorizontal();
+
+        if (directoryFoldouts[dir]) {
+            foreach (string file in directoryFiles[dir]) {
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Space(20); // Indent files
+                directoryFileSelection[dir][file] = EditorGUILayout.Toggle(directoryFileSelection[dir][file], GUILayout.Width(20));
+                EditorGUILayout.LabelField(file);
+                EditorGUILayout.EndHorizontal();
+            }
+
+            // Recursively draw subdirectories and files
+            foreach (string subDir in directories.Where(d => d.StartsWith(dir + Path.DirectorySeparatorChar))) {
+                DrawDirectoryAndFiles(subDir);
+            }
+        }
+
+        GUILayout.Space(10);
+    }
+
+
+
 
     private void ApplyAssistantIdToInterfacer() {
         // Find the GPTInterfacer in the active scene
@@ -295,6 +347,69 @@ public class GPTAssistantBuilder : EditorWindow {
             files = newFiles;
         }
     }
+
+    private void LoadAllDirectories() {
+        directories.Clear();
+        directorySelection.Clear();
+        directoryFoldouts.Clear();
+        directoryFiles.Clear();
+        directoryFileSelection.Clear();
+        additionalDirectories.Clear();
+
+        // Load directories and files within Assets
+        string[] allDirectories = Directory.GetDirectories(Application.dataPath, "*", SearchOption.AllDirectories);
+        foreach (string dir in allDirectories) {
+            string relativePath = "Assets" + dir.Substring(Application.dataPath.Length);
+            directories.Add(relativePath);
+            directorySelection[relativePath] = false;
+            directoryFoldouts[relativePath] = false;
+
+            LoadDirectoryFiles(dir, relativePath);
+        }
+
+        // Load directories and files within Library/PackageCache
+        string libraryPackageCachePath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Library/PackageCache");
+        if (Directory.Exists(libraryPackageCachePath)) {
+            string[] packageCacheDirectories = Directory.GetDirectories(libraryPackageCachePath, "*", SearchOption.AllDirectories);
+            foreach (string dir in packageCacheDirectories) {
+                string relativePath = "Library/PackageCache" + dir.Substring(libraryPackageCachePath.Length);
+                additionalDirectories.Add(relativePath);
+                directorySelection[relativePath] = false;
+                directoryFoldouts[relativePath] = false;
+
+                LoadDirectoryFiles(dir, relativePath);
+            }
+        }
+    }
+
+    private void LoadDirectoryFiles(string dir, string relativePath) {
+        // Load relevant files within the directory
+        string[] files = Directory.GetFiles(dir)
+            .Where(file => file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) || Path.GetFileName(file).Equals("README", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        List<string> relativeFiles = new List<string>();
+        Dictionary<string, bool> fileSelection = new Dictionary<string, bool>();
+        foreach (string file in files) {
+            string relativeFilePath = relativePath + file.Substring(dir.Length);
+            relativeFiles.Add(relativeFilePath);
+            fileSelection[relativeFilePath] = false; // Initialize selection state
+        }
+        directoryFiles[relativePath] = relativeFiles;
+        directoryFileSelection[relativePath] = fileSelection;
+
+        // Recursively load subdirectories
+        string[] subDirectories = Directory.GetDirectories(dir);
+        foreach (string subDir in subDirectories) {
+            string subRelativePath = relativePath + subDir.Substring(dir.Length);
+            directories.Add(subRelativePath);
+            directorySelection[subRelativePath] = false;
+            directoryFoldouts[subRelativePath] = false;
+
+            LoadDirectoryFiles(subDir, subRelativePath);
+        }
+    }
+
+
 
     private void SaveFilesToEditorPrefs() {
         string[] assetPaths = files.Select(file => file.assetPath).ToArray();
