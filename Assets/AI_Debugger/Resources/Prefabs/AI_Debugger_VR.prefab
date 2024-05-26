@@ -5362,7 +5362,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Settings:
     operatingMode: 0
-    debugMode: 1
+    debugMode: 0
     tts: 0
     saveLogs: 0
   KeywordEventManager: {fileID: 1796559839208905452}
@@ -5372,7 +5372,7 @@ MonoBehaviour:
   gptInterfacer: {fileID: 4753200803536005390}
   speechControllerAudio: {fileID: 5028693014921337989}
   speechControllerAudioPanel: {fileID: 8137679055848925303}
-  scanOnStart: 0
+  scanOnStart: 1
 --- !u!114 &8908684215097922835
 MonoBehaviour:
   m_ObjectHideFlags: 0

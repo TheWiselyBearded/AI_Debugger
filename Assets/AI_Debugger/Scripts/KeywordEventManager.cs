@@ -22,6 +22,7 @@ public class KeywordEventManager : MonoBehaviour
     public bool ParseKeyword()
     {
         string input = DopeCoderController.Instance.uiController.inputField.text;
+        input = input.ToLower();
         foreach (KeywordEvent k in keywordEvents)
         {
             if (input.Contains(k.Keyword, StringComparison.OrdinalIgnoreCase))

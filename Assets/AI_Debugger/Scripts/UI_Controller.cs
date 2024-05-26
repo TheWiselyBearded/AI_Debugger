@@ -26,12 +26,53 @@ public class UI_Controller : MonoBehaviour
     public RectTransform contentArea;
 
     [SerializeField]
-    public ScrollRect scrollView; 
-    
+    public ScrollRect scrollView;
+    [SerializeField]
+    public GameObject loadingIcon;
+    [SerializeField]
+    public Image loadingImage;
+    private Coroutine loadingCoroutine;
 
     private void Awake()
     {
         OnValidate();
+    }
+
+    private void Start() {
+        GPTInterfacer.onStartLoading += GPTInterfacer_onStartLoading;
+        GPTInterfacer.onStopLoading += GPTInterfacer_onStopLoading;
+    }
+
+    private void OnDestroy() {
+        GPTInterfacer.onStartLoading -= GPTInterfacer_onStartLoading;
+        GPTInterfacer.onStopLoading -= GPTInterfacer_onStopLoading;
+    }
+
+    private void GPTInterfacer_onStartLoading() {
+        loadingIcon.SetActive(true);
+        if (loadingCoroutine == null) {
+            loadingCoroutine = StartCoroutine(UpdateLoadingIcon());
+        }
+    }
+
+    private void GPTInterfacer_onStopLoading() {
+        if (loadingCoroutine != null) {
+            StopCoroutine(loadingCoroutine);
+            loadingCoroutine = null;
+        }
+        loadingIcon.SetActive(false);
+    }
+
+    private IEnumerator UpdateLoadingIcon() {
+        while (true) {
+            float elapsedTime = 0f;
+            while (elapsedTime < 3f) {
+                loadingImage.fillAmount = elapsedTime / 3f;
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+            loadingImage.fillAmount = 0f;
+        }
     }
 
     private void OnValidate()
@@ -52,6 +93,7 @@ public class UI_Controller : MonoBehaviour
     
     public void ToggleMicIcon()
     {
+        inputField.text = "";
         if (startRecordingIcon.activeSelf)
         {
             startRecordingIcon.SetActive(false);

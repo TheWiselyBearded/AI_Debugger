@@ -107,8 +107,11 @@ public class DopeCoderController : MonoBehaviour
 
     public void UpdateChatSTT(string text)
     {
-        uiController.UpdateChat(text, MessageColorMode.MessageType.Sender);
-        gptInterfacer.SubmitChatStreamRequst(text);
+        uiController.inputField.text = text;
+        SubmitChatRequest();
+        //uiController.UpdateChat(text, MessageColorMode.MessageType.Sender);
+        //gptInterfacer.SubmitAssistantResponseRequest(text);
+        //gptInterfacer.SubmitChatStreamRequst(text);
     }
 
     private void OnDestroy()

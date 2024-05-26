@@ -16,6 +16,7 @@ using Utilities.WebRequestRest;
 using OpenAI.Assistants;
 using System.Runtime.InteropServices;
 using Newtonsoft.Json;
+using UnityEngine.TerrainTools;
 
 public class GPTInterfacer : MonoBehaviour
 {
@@ -30,6 +31,9 @@ public class GPTInterfacer : MonoBehaviour
 
     public delegate void GPTMessageReceived(string text, MessageColorMode.MessageType messageType);
     public static GPTMessageReceived onGPTMessageReceived;
+
+    public static event System.Action onStartLoading;
+    public static event System.Action onStopLoading;
 
     #region GPTAssistantVariables
     public AssistantResponse assistant;
@@ -61,6 +65,9 @@ public class GPTInterfacer : MonoBehaviour
     public async Task InitializeAssistantSessionAsync() {
         assistant = await openAI.AssistantsEndpoint.RetrieveAssistantAsync(AssistantID);
         gptThreadResponse = await openAI.ThreadsEndpoint.CreateThreadAsync();
+
+        //run = await run.WaitForStatusChangeAsync();        
+        // submit the tool outputs
         threadID = gptThreadResponse.Id;
         Debug.Log($"Initialized assistant session: {assistant.Name} with thread ID: {gptThreadResponse.Id}");
     }
@@ -87,7 +94,19 @@ public class GPTInterfacer : MonoBehaviour
 
         try {
             if (gptThreadResponse != null) {
-                await gptThreadResponse.CreateMessageAsync(jsonMessage);
+                if (jsonMessage.Length > GPT4_CHARACTERLIMIT) {
+                    // Notify about the incoming JSON file
+                    //string updateMessage = "{ \"type\": \"update\", \"content\": \"The snapshot text is too long, sharing a JSON file instead.\" }";
+                    //await gptThreadResponse.CreateMessageAsync(updateMessage);
+                    //var run = await gptThreadResponse.CreateRunAsync(assistant);
+                    //_ = await AwaitAssistantResponseAsync();
+                    // Handle character limit and create JSON file
+                    CreateMessageRequest request = await HandleCharacterLimitAndCreateJsonFileAsync(jsonMessage);
+                    await gptThreadResponse.CreateMessageAsync(request);
+                } else {
+                    await gptThreadResponse.CreateMessageAsync(jsonMessage);
+                }
+
                 await gptThreadResponse.CreateMessageAsync(notificationMessage);
             } else {
                 Debug.LogWarning("gptThreadResponse is null. Unable to create messages.");
@@ -100,6 +119,7 @@ public class GPTInterfacer : MonoBehaviour
             if (gptThreadResponse != null) {
                 var run = await gptThreadResponse.CreateRunAsync(assistant);
                 Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
+                _ = await AwaitAssistantResponseAsync();
             } else {
                 Debug.LogWarning("gptThreadResponse is null. Unable to create run.");
             }
@@ -107,6 +127,29 @@ public class GPTInterfacer : MonoBehaviour
             Debug.LogError($"Error creating run: {ex.Message}");
         }
     }
+
+    private async Task<CreateMessageRequest> HandleCharacterLimitAndCreateJsonFileAsync(string msg) {
+        /*if (msg.Length <= GPT4_CHARACTERLIMIT) {
+            msg = "{\"type\": \"snapshot\", \"content\":\"" + msg + "\"}";
+            return new CreateMessageRequest(msg);
+        }*/
+        
+
+        //msg += " Please first make sure to read the file attached to this message before responding.";
+        //string jsonString = JsonConvert.SerializeObject(new { type = "snapshot", content = msg });
+
+        string tempFilePath = Path.Combine(Application.temporaryCachePath, $"tempFile_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.json");
+        await File.WriteAllTextAsync(tempFilePath, msg);
+
+        var fileData = await openAI.FilesEndpoint.UploadFileAsync(tempFilePath, "assistants");
+        Debug.Log($"Exceeded character count, creating JSON file upload req {fileData.Id}");
+
+        //msg = "Okay, based on everything in the JSON file I've given you in this message thread, what are some of the most important classes you've identified? Please explain how everything works.";
+        string updateMessage = "{ \"type\": \"update\", \"content\": \"The snapshot text is too long, sharing a JSON file instead.\" }";
+        //await gptThreadResponse.CreateMessageAsync(updateMessage);
+        return new CreateMessageRequest(updateMessage, new[] { fileData.Id });
+    }
+
 
 
 
@@ -142,8 +185,19 @@ public class GPTInterfacer : MonoBehaviour
             threadID = gptThreadResponse.Id;
         }
 
+        CreateMessageRequest request;
         // Handle character limit and create JSON file
-        CreateMessageRequest request = await HandleCharacterLimitAndCreateJsonFileAsync(msg);
+        if (msg.Length > GPT4_CHARACTERLIMIT) {
+            // Notify about the incoming JSON file
+            //string updateMessage = "{ \"type\": \"update\", \"content\": \"The snapshot text is too long, sharing a JSON file instead.\" }";
+            //await gptThreadResponse.CreateMessageAsync(updateMessage);
+            // Handle character limit and create JSON file
+            request = await HandleCharacterLimitAndCreateJsonFileAsync(msg);
+            //await gptThreadResponse.CreateMessageAsync(request);
+        } else {
+            request = new CreateMessageRequest(msg);
+        }
+
 
         // Send the message
         MessageResponse message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
@@ -175,15 +229,15 @@ public class GPTInterfacer : MonoBehaviour
 
     private void ProcessAssistantResponse(string jsonResponse) {
         try {
-            var responseObject = JsonConvert.DeserializeObject<JObject>(jsonResponse);
-            if (responseObject["type"]?.ToString() == "response") {
-                string content = responseObject["content"]?.ToString();
-                onGPTMessageReceived?.Invoke(content, MessageColorMode.MessageType.Receiver);
+            var responseObject = JsonConvert.DeserializeObject<AssistantResponseDataType>(jsonResponse);
+            if (responseObject?.Type == "response") {
+                onGPTMessageReceived?.Invoke(responseObject.Content, MessageColorMode.MessageType.Receiver);
             }
         } catch (Exception ex) {
             Debug.LogError($"Error processing assistant response: {ex.Message}");
         }
     }
+
 
 
     private async Task<CreateMessageRequest> HandleCharacterLimitAndFileUploadsAsync(string msg) {
@@ -217,24 +271,7 @@ public class GPTInterfacer : MonoBehaviour
     }
 
 
-    private async Task<CreateMessageRequest> HandleCharacterLimitAndCreateJsonFileAsync(string msg) {
-        if (msg.Length <= GPT4_CHARACTERLIMIT) {
-            msg = "{\"type\": \"question\", \"content\":\"" + msg + "\"}";
-            return new CreateMessageRequest(msg);
-        }
-
-        msg += "Please first make sure to read the file attached to this message before responding.";
-        string jsonString = JsonConvert.SerializeObject(new { type = "question", content = msg });
-
-        string tempFilePath = Path.Combine(Application.temporaryCachePath, $"tempFile_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.json");
-        await File.WriteAllTextAsync(tempFilePath, jsonString);
-
-        var fileData = await openAI.FilesEndpoint.UploadFileAsync(tempFilePath, "assistants");
-        Debug.Log($"Exceeded character count, creating JSON file upload req {fileData.Id}");
-
-        msg = "Okay, based on everything in the JSON file I've given you in this message thread, what are some of the most important classes you've identified? Please explain how everything works";
-        return new CreateMessageRequest(msg, new[] { fileData.Id });
-    }
+    
 
     private async Task<string> WriteMessageToJsonFile(string message, string fileName) {
         string tempFilePath = Path.Combine(Application.temporaryCachePath, fileName);
@@ -301,13 +338,15 @@ public class GPTInterfacer : MonoBehaviour
         var run = await openAI.ThreadsEndpoint.RetrieveRunAsync(threadID, runID);
         Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
         RunStatus status = run.Status;
+        onStartLoading?.Invoke(); // start ui moving
         while (status != RunStatus.Completed)
-        {
+        {            
             run = await openAI.ThreadsEndpoint.RetrieveRunAsync(threadID, runID);
-            Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
+            //Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
             status = run.Status;
             await System.Threading.Tasks.Task.Delay(500);
-        }
+        }        
+        onStopLoading?.Invoke(); // deactivate ui
         var messageList = await openAI.ThreadsEndpoint.ListMessagesAsync(threadID);
 
         return messageList;
@@ -382,4 +421,14 @@ public class GPTInterfacer : MonoBehaviour
             }
         });
     }
+}
+
+
+[System.Serializable]
+public class AssistantResponseDataType {
+    [JsonProperty("type")]
+    public string Type { get; set; }
+
+    [JsonProperty("content")]
+    public string Content { get; set; }
 }
