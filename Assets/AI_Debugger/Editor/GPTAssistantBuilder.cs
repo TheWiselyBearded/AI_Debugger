@@ -27,10 +27,14 @@ public class GPTAssistantBuilder : EditorWindow {
     private string fileID;
     private string assistantName = "New Assistant";
     private string modelType = "gpt-4-1106-preview";
+    private string assistantInstruction = "";
+
     private bool isCreatingOrUpdating = false;
 
     private Vector2 scrollPosition; // Variable to manage scroll position
     private Vector2 fileScrollPosition; // Variable to manage scroll position for files
+    private string assistantLoadedInstruction = "";
+    private Vector2 instructionScrollPosition = Vector2.zero;
 
 
     private List<string> assistantsToDelete = new List<string>(); // Track assistants marked for deletion
@@ -125,6 +129,11 @@ public class GPTAssistantBuilder : EditorWindow {
     private void DrawAssistantDetails() {
         if (assignedAssistant != null) {
             GUILayout.Label($"Assigned Assistant: {assignedAssistant.Name} ({assignedAssistant.Id})", EditorStyles.boldLabel);
+            // Scrollable, read-only text area for Assistant Description
+            GUILayout.Label("Assistant Instruction", EditorStyles.boldLabel);
+            instructionScrollPosition = EditorGUILayout.BeginScrollView(instructionScrollPosition, GUILayout.Height(100));
+            EditorGUILayout.TextArea(assistantLoadedInstruction, GUILayout.ExpandHeight(true));
+            EditorGUILayout.EndScrollView();
 
             // Collapsible section for listing vector stores
             showVectorStores = EditorGUILayout.Foldout(showVectorStores, "Vector Stores");
@@ -298,8 +307,11 @@ public class GPTAssistantBuilder : EditorWindow {
 
     private void DrawAssistantActions() {
         // Assistant Details and Actions
-        EditorGUILayout.LabelField("Assistant Details:");
+        EditorGUILayout.LabelField("Create Assistant:");
         assistantName = EditorGUILayout.TextField("Assistant Name", assistantName);
+
+        // Field for Assistant Description
+        assistantInstruction = EditorGUILayout.TextField("Assistant Instruction", assistantInstruction);
 
         // Dropdown for model selection
         if (availableModels.Count > 0) {
@@ -602,7 +614,7 @@ public class GPTAssistantBuilder : EditorWindow {
         retrievalTools[0] = OpenAI.Tool.Retrieval;
 
         if (string.IsNullOrEmpty(assistantId)) {
-            var request = new CreateAssistantRequest(model: modelType, name: assistantName, tools: retrievalTools);
+            var request = new CreateAssistantRequest(model: modelType, name: assistantName, instructions: assistantInstruction, tools: retrievalTools);
             var assistant = await api.AssistantsEndpoint.CreateAssistantAsync(request);
             assistantId = assistant.Id;
             EditorPrefs.SetString("AssistantId", assistant.Id);
@@ -625,6 +637,8 @@ public class GPTAssistantBuilder : EditorWindow {
         assistantFiles = filesListResponse.Items.ToList();
         assistantId = assistantIdToLoad;
 
+        // Set the assistant description
+        assistantLoadedInstruction = assignedAssistant.Instructions;
         // Apply the assistantId to the GPTInterfacer
         ApplyAssistantIdToInterfacer();
 

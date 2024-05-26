@@ -182,17 +182,35 @@ public class ReflectionRuntimeController : MonoBehaviour {
     }
 
     public void SearchFunctions(string func) {
-        Debug.Log($"Searching functions {func}");
-        foreach (string _class in classCollection.Keys) {
-            foreach (string _func in classCollection[_class].Methods.Keys) {
-                if (_func == func) {
-                    Debug.Log($"Found function {_func}");
-                    SetCustomObject(FindObjectOfType(Type.GetType(_class)));
-                    InvokePublicMethod(_class, _func);
+        string normalizedFuncName = func.Replace(" ", "").ToLower();
+        string bestMatch = null;
+        double bestAccuracy = 0.0;
+        string bestClass = null;
+
+        foreach (var classEntry in classCollection) {
+            foreach (var methodEntry in classEntry.Value.Methods) {
+                string normalizedMethodName = methodEntry.Key.Replace(" ", "").ToLower();
+                double accuracy = 1.0 - (double)LevenshteinDistance(normalizedFuncName, normalizedMethodName) / Math.Max(normalizedFuncName.Length, normalizedMethodName.Length);
+
+                if (accuracy > bestAccuracy) {
+                    bestAccuracy = accuracy;
+                    bestMatch = methodEntry.Key;
+                    bestClass = classEntry.Key;
                 }
             }
         }
+
+        if (bestMatch != null && bestAccuracy >= 0.95) {
+            Debug.Log($"Found function '{bestMatch}' in class '{bestClass}' with accuracy {bestAccuracy:P}");
+            SetCustomObject(FindObjectOfType(Type.GetType(bestClass)));
+            InvokePublicMethod(bestClass, bestMatch);
+        } else if (bestMatch != null) {
+            Debug.Log($"Closest match for function '{func}' is '{bestMatch}' in class '{bestClass}' with accuracy {bestAccuracy:P}");
+        } else {
+            Debug.Log($"Function '{func}' not found.");
+        }
     }
+
 
     protected ParameterInfo[] GetParameterTypesOfPublicMethod(string className, string methodName) {
         return classCollection[className].Methods[methodName].GetParameters();
@@ -204,24 +222,25 @@ public class ReflectionRuntimeController : MonoBehaviour {
         }
     }
 
-    
-
-    public void PrintAllVariableValues(string className) {
-        if (classCollection.TryGetValue(className, out ClassInfo classInfo)) {
-            Debug.Log($"All variables in class {className}:");
-            foreach (var variable in classInfo.Variables) {
-                object value = classInfo.VariableValues.TryGetValue(variable.Key, out object val) ? val : "Unavailable";
-                Debug.Log($"- {variable.Key}: {value}");
-            }
-        } else {
-            Debug.Log($"Class {className} not found.");
-        }
-    }
-
     public string GetAllVariableValuesAsString(string className) {
-        if (classCollection.TryGetValue(className, out ClassInfo classInfo)) {
+        string normalizedClassName = className.Replace(" ", "").ToLower();
+        string bestMatch = null;
+        double bestAccuracy = 0.0;
+
+        foreach (var entry in classCollection) {
+            string normalizedEntryName = entry.Key.Replace(" ", "").ToLower();
+            double accuracy = 1.0 - (double)LevenshteinDistance(normalizedClassName, normalizedEntryName) / Math.Max(normalizedClassName.Length, normalizedEntryName.Length);
+
+            if (accuracy > bestAccuracy) {
+                bestAccuracy = accuracy;
+                bestMatch = entry.Key;
+            }
+        }
+
+        if (bestMatch != null && bestAccuracy >= 0.95) {
+            var classInfo = classCollection[bestMatch];
             StringBuilder variableValues = new StringBuilder();
-            variableValues.AppendLine($"All variables in class {className}:");
+            variableValues.AppendLine($"All variables in class {bestMatch}:");
 
             foreach (var variable in classInfo.Variables) {
                 object variableValue = classInfo.VariableValues.TryGetValue(variable.Key, out object val) ? val : "Unavailable";
@@ -235,12 +254,29 @@ public class ReflectionRuntimeController : MonoBehaviour {
                     variableValues.AppendLine($"- {variable.Key}: {variableValue}");
                 }
             }
-            //Debug.Log(variableValues.ToString());
+            return variableValues.ToString();
+        } else if (bestMatch != null) {
+            var classInfo = classCollection[bestMatch];
+            StringBuilder variableValues = new StringBuilder();
+            variableValues.AppendLine($"All variables in class {bestMatch}:");
+            foreach (var variable in classInfo.Variables) {
+                object variableValue = classInfo.VariableValues.TryGetValue(variable.Key, out object val) ? val : "Unavailable";
+
+                if (variableValue is IDictionary dictionary) {
+                    variableValues.AppendLine($"- {variable.Key} (Dictionary):");
+                    foreach (DictionaryEntry entry in dictionary) {
+                        variableValues.AppendLine($"    - Key: {entry.Key}, Value: {entry.Value}");
+                    }
+                } else {
+                    variableValues.AppendLine($"- {variable.Key}: {variableValue}");
+                }
+            }
             return variableValues.ToString();
         } else {
-            return $"Class {className} not found.";
+            return $"Class '{className}' not found.";
         }
     }
+
 
     public string GetAllClassInfoAsJson() {
         JObject jsonResult = new JObject();
@@ -371,6 +407,26 @@ public class ReflectionRuntimeController : MonoBehaviour {
             Debug.Log($"Variable {variableName} not found in any class.");
         }
     }
+
+    private int LevenshteinDistance(string source, string target) {
+        if (string.IsNullOrEmpty(source)) return string.IsNullOrEmpty(target) ? 0 : target.Length;
+        if (string.IsNullOrEmpty(target)) return source.Length;
+
+        int[,] matrix = new int[source.Length + 1, target.Length + 1];
+
+        for (int i = 0; i <= source.Length; i++) matrix[i, 0] = i;
+        for (int j = 0; j <= target.Length; j++) matrix[0, j] = j;
+
+        for (int i = 1; i <= source.Length; i++) {
+            for (int j = 1; j <= target.Length; j++) {
+                int cost = target[j - 1] == source[i - 1] ? 0 : 1;
+                matrix[i, j] = Math.Min(Math.Min(matrix[i - 1, j] + 1, matrix[i, j - 1] + 1), matrix[i - 1, j - 1] + cost);
+            }
+        }
+
+        return matrix[source.Length, target.Length];
+    }
+
 
     public void SetCustomObject(UnityEngine.Object obj) => customObject = obj;
 

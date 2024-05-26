@@ -22,6 +22,7 @@ public class KeywordEventManager : MonoBehaviour
     public bool ParseKeyword()
     {
         string input = DopeCoderController.Instance.uiController.inputField.text;
+        input = input.ToLower();
         foreach (KeywordEvent k in keywordEvents)
         {
             if (input.Contains(k.Keyword, StringComparison.OrdinalIgnoreCase))
@@ -65,12 +66,12 @@ public class KeywordEventManager : MonoBehaviour
     {
         string _text = DopeCoderController.Instance.uiController.inputField.text;
         string className = ParseClassName(_text, "view variables of ");
-        if (!string.IsNullOrEmpty(className))
-        {
+        if (!string.IsNullOrEmpty(className)) {
             Debug.Log($"Viewing variables of class {className}");
-            //componentController.PrintAllVariableValues(className);
-            // update references
+            // Update references
             DopeCoderController.Instance.reflectionController.ScanAndPopulateClasses();
+
+            // Search for the closest class name match
             string localQueryResponse = DopeCoderController.Instance.reflectionController.GetAllVariableValuesAsString(className);
             DopeCoderController.Instance.UpdateChat(localQueryResponse, MessageColorMode.MessageType.Receiver);
         }
@@ -80,9 +81,8 @@ public class KeywordEventManager : MonoBehaviour
     {
         string _text = DopeCoderController.Instance.uiController.inputField.text;
         string variableName = ParseVariableName(_text, "view variable ");
-        if (!string.IsNullOrEmpty(variableName))
-        {
-            // update references
+        if (!string.IsNullOrEmpty(variableName)) {
+            // Update references
             DopeCoderController.Instance.reflectionController.ScanAndPopulateClasses();
             Debug.Log($"Viewing variable {variableName}");
             DopeCoderController.Instance.reflectionController.PrintVariableValueInAllClasses(variableName);
@@ -92,27 +92,31 @@ public class KeywordEventManager : MonoBehaviour
 
 
 
-    public string ParseFunctionName(string input)
-    {
+    public string ParseFunctionName(string input) {
         // Define a regular expression pattern to match "invoke function" followed by a function name in parentheses
         string pattern = @"invoke\s+function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(";
 
         // Use Regex to find a match
         Match match = Regex.Match(input, pattern);
         Debug.Log("attempt to regex match");
-        if (match.Success)
-        {
+        if (match.Success) {
             // Extract and return the function name from the matched group
             return match.Groups[1].Value;
-        }
-        else
-        {
+        } else {
             // If no match is found, return null or an empty string, depending on your preference
             return null;
         }
     }
 
-    public string ParseClassName(string input, string patternStart)
+    public string ParseClassName(string input, string keyword) {
+        int keywordIndex = input.IndexOf(keyword, StringComparison.OrdinalIgnoreCase);
+        if (keywordIndex != -1) {
+            return input.Substring(keywordIndex + keyword.Length).Trim();
+        }
+        return null;
+    }
+
+    /*public string ParseClassName(string input, string patternStart)
     {
         string pattern = patternStart + @"([A-Za-z_][A-Za-z0-9_]*)";
         Match match = Regex.Match(input, pattern);
@@ -121,7 +125,7 @@ public class KeywordEventManager : MonoBehaviour
             return match.Groups[1].Value;
         }
         return null;
-    }
+    }*/
 
     public string ParseVariableName(string input, string patternStart)
     {

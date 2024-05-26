@@ -107,8 +107,11 @@ public class DopeCoderController : MonoBehaviour
 
     public void UpdateChatSTT(string text)
     {
-        uiController.UpdateChat(text, MessageColorMode.MessageType.Sender);
-        gptInterfacer.SubmitChatStreamRequst(text);
+        uiController.inputField.text = text;
+        SubmitChatRequest();
+        //uiController.UpdateChat(text, MessageColorMode.MessageType.Sender);
+        //gptInterfacer.SubmitAssistantResponseRequest(text);
+        //gptInterfacer.SubmitChatStreamRequst(text);
     }
 
     private void OnDestroy()
@@ -139,15 +142,14 @@ public class DopeCoderController : MonoBehaviour
 
         if (KeywordEventManager != null && KeywordEventManager.ParseKeyword())
         {
-            //componentController.SearchFunctions(ParseFunctionName(chatBehaviour.inputField.text));
+            ///componentController.SearchFunctions(ParseFunctionName(chatBehaviour.inputField.text));
             Debug.Log("Keyword found, invoking event");
             //uiController.ToggleInput(true); // bc chat request is async in else block, we toggle ui back here for local commands
         }
         else
         {
-            //gptInterfacer.SubmitChatStreamRequst(uiController.inputField.text);            
             gptInterfacer.SubmitAssistantResponseRequest(uiController.inputField.text);
-            //_ = gptInterfacer.SendMessageToAssistantAsync(uiController.inputField.text);
+            //gptInterfacer.SubmitChatStreamRequst(uiController.inputField.text);            
         }
         uiController.inputField.text = string.Empty;
     }
