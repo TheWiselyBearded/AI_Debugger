@@ -2,6 +2,8 @@
 
 Welcome to **ai-debugger**! This framework allows you to create a powerful OpenAI Assistant, "the dope coder," tailored to work with your Unity project's files. At runtime, the assistant utilizes reflection and a simple UI, enabling you to ask questions about the runtime environment and project codebase using voice or text. Additionally, it provides the ability to review runtime values for any active class.
 
+<img src="https://i.imgur.com/g6TTw2C.png" alt="Assistant Runtime" width="50%"/>
+
 In the Unity Editor, you can traverse your filesystem and selectively upload files to the assistant's vector store, enhancing its understanding and response accuracy. The tool is designed for both VR and non-VR Unity projects, providing advanced analysis and insights into the relationships among components, their runtime behaviors, and overall code functionality.
 
 ## Features
@@ -15,13 +17,16 @@ In the Unity Editor, you can traverse your filesystem and selectively upload fil
 
 
 ## Usage
+<img src="https://i.imgur.com/Ti3vPUm.png" alt="AssistantBuilderInterface" width="50%"/>
 
 ### In-Editor
-1. **API Key Configuration**: Initially, create an OpenAI configuration file and insert your API key.
-2. **Scan Directories**: Navigate to `Tools > Generate PDF` in Unity to scan directories. This step collects information about your project's codebase.
-3. **Create GPT Assistant**: Access the 'Assistants' window by going to `Tools > GPT Assistant Builder`. Here, create your GPT assistant by specifying its name and model.
-4. **Attach Files**: In the 'Assistants' window, attach files that include data about your codebase, such as class structures and method descriptions.
-<!-- 5. **Runtime Query**: The tool queries the GPT assistant during runtime, combining the GPT responses with the scanned documentation to provide insights about your code's functionality and assist in troubleshooting. -->
+1. Obtain your OpenAI API key from [OpenAI](https://platform.openai.com/account/api-keys) and configure it in the assistant setup.
+2. Open the "Dope Coder" window from the Unity Editor menu by selecting **Tools > Dope Coder > GPT Assistant Builder**.
+3. In the GPT Assistant Builder window, create a new assistant or load/edit an existing assistant.
+   - To create a new assistant, enter the assistant name, instruction, and select the model.
+   - To load an existing assistant, choose from the list and click "Load."
+4. Use the file system traversal feature to select and upload files to the assistant's vector store.
+5. Save and configure the assistant as needed.
 
 ### At Runtime
 1. Start your Unity project.
