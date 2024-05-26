@@ -16,20 +16,22 @@ using OpenAI.Samples.Chat;
 using UnityEngine.UIElements;
 using System.Text.RegularExpressions;
 using OpenAI.Threads;
-using UnityEditor.VersionControl;
 using Utilities.WebRequestRest;
-using Unity.VisualScripting;
+//using Unity.VisualScripting;
 using System.IO;
 using OpenAI.Files;
 
 public class GPTReflectionAnalysis : MonoBehaviour
 {
-    public ChatWindow chatWindow;
+    public DopeCoderController dopeCoderController;
     public ReflectionRuntimeController componentController; // Reference to your component controller
     private OpenAIClient openAI; // OpenAI Client
     public string AssistantID;
     public string AssistantIDGPT3;
     public string AssistantIDGPT4;
+    public bool textToSpeech;
+
+    public SphereController sphereController;
 
     public Dictionary<string, MessageResponse> gptDebugMessages;
 
@@ -58,8 +60,10 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     protected void Start()
     {
-        chatWindow.inputField.onSubmit.AddListener(SubmitChat);
-        ChatWindow.onSTT += ProcessVoiceInput;
+        dopeCoderController.uiController.inputField.onSubmit.AddListener(dopeCoderController.SubmitChat);
+        SpeechController.onSTT += ProcessVoiceInput;
+
+        sphereController.SetMode(SphereController.SphereMode.Idle);
     }
 
     public void ProcessVoiceInput(string voiceInput) => RetrieveAssistant(voiceInput);
@@ -83,11 +87,13 @@ public class GPTReflectionAnalysis : MonoBehaviour
             WriteConversationToFile();
         }
         gptDebugMessages = null;
-        chatWindow.inputField.onSubmit.RemoveAllListeners();
-        ChatWindow.onSTT -= ProcessVoiceInput;
+        dopeCoderController.uiController.inputField.onSubmit.RemoveAllListeners();
+        SpeechController.onSTT -= ProcessVoiceInput;
     }
 
     public void SubmitChat(string _) => SubmitChat();
+
+    public void ToggleTTS() => textToSpeech = !textToSpeech;
 
     /// <summary>
     /// invoked externally via button press/mapping
@@ -112,15 +118,14 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     }
 
-    
-    private async void RetrieveAssistant(string msg = "What exactly is all the code doing around me and what relationships do the scripts have with one another?")
-    {
+
+    private async void RetrieveAssistant(string msg = "What exactly is all the code doing around me and what relationships do the scripts have with one another?") {
+        sphereController.SetMode(SphereController.SphereMode.Listening);
         isChatPending = true;
         var assistant = await openAI.AssistantsEndpoint.RetrieveAssistantAsync(AssistantID);
         Debug.Log($"{assistant} -> {assistant.CreatedAt}");
 
-        if (threadID == null || threadID == string.Empty)
-        {
+        if (threadID == null || threadID == string.Empty) {
             GPTthread = await openAI.ThreadsEndpoint.CreateThreadAsync();
             threadID = GPTthread.Id;
         }
@@ -130,18 +135,33 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
         if (msg.Length > GPT4_CHARACTERLIMIT) { // check if char count exceed, if so make file, then submit to GPTAssistant
             msg += "Please first make sure to read the file attached to this message before responding.";
-            MemoryStream ms = await WriteGPTQueryToStream(msg);            
-            string tempFilePath = Path.Combine(Application.temporaryCachePath, "tempFile.txt");
-            using (FileStream file = new FileStream(tempFilePath, System.IO.FileMode.Create, FileAccess.Write)) ms.WriteTo(file);
-            ms.Close();
+            MemoryStream ms = await WriteGPTQueryToStream(msg);
+            // Calculate the number of files needed
+            int numberOfFiles = (int)Math.Ceiling((double)ms.Length / GPT4_CHARACTERLIMIT);
+            FileReference[] files = new FileReference[numberOfFiles];
+            string[] fileIDs = new string[numberOfFiles];
+            for (int i = 0; i < numberOfFiles; i++) {
+                string tempFilePath = Path.Combine(Application.temporaryCachePath, $"tempFile_{i}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt");
 
-            var fileData = await openAI.FilesEndpoint.UploadFileAsync(tempFilePath, "assistants");                        
-            Debug.Log($"Exceeded character count, creating file upload req {fileData.Id}");
-            List<string> fileIds = new List<string>
-            {
-                fileData.Id
-            };
-            request = new CreateMessageRequest(msg, fileIds);            
+                using (FileStream file = new FileStream(tempFilePath, System.IO.FileMode.Create, FileAccess.Write)) {
+                    // Copy the portion of the MemoryStream into the file
+                    ms.Position = i * GPT4_CHARACTERLIMIT;
+                    byte[] buffer = new byte[Math.Min(GPT4_CHARACTERLIMIT, ms.Length - ms.Position)];
+                    ms.Read(buffer, 0, buffer.Length);
+                    file.Write(buffer, 0, buffer.Length);
+                }
+                files[i] = new FileReference { assetPath = tempFilePath };
+
+                var fileData = await openAI.FilesEndpoint.UploadFileAsync(files[i].assetPath, "assistants");
+                Debug.Log($"Exceeded character count, creating file upload req {fileData.Id}");
+                fileIDs[i] = fileData.Id;
+                // Optionally, delete the temporary file after upload
+                //File.Delete(tempFilePath);
+            }
+            msg = "okay, based on everything in the text files I've given you in this message thread, what are some of the most important classes you've identified? Please explain how everything works";
+            //request = new CreateMessageRequest(msg, new[] { fileIDs[0], fileIDs[1], fileIDs[2] }); 
+            request = new CreateMessageRequest(msg, fileIDs);
+
             message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
             //var messageFileMsg = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, requestFileMsg);
         } else {
@@ -149,12 +169,11 @@ public class GPTReflectionAnalysis : MonoBehaviour
             message = await openAI.ThreadsEndpoint.CreateMessageAsync(threadID, request);
         }
 
-        
-        messageID = message.Id;
-        Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");
 
-        if (!gptDebugMessages.ContainsKey(message.Id))
-        {
+        messageID = message.Id;
+        Debug.Log($"{message.Id}: {message.Role}: {message.PrintContent()}");        
+
+        if (!gptDebugMessages.ContainsKey(message.Id)) {
             gptDebugMessages.Add(message.Id, message);
             UpdateChat($"User: {message.PrintContent()}");
         }
@@ -163,31 +182,34 @@ public class GPTReflectionAnalysis : MonoBehaviour
         Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
         runID = run.Id;
 
-        var messageList = await RetrieveAssistantResponseAsync();        
-        for (int index = messageList.Items.Count-1; index >= 0; index--)
-        {
+        var messageList = await RetrieveAssistantResponseAsync();
+        for (int index = messageList.Items.Count - 1; index >= 0; index--) {
             var _message = messageList.Items[index];
             Debug.Log($"{_message.Id}: {_message.Role}: {_message.PrintContent()}");
-            if (!gptDebugMessages.ContainsKey(_message.Id))
-            {
+            if (!gptDebugMessages.ContainsKey(_message.Id)) {
                 gptDebugMessages.Add(_message.Id, _message);
-                UpdateChat($"{_message.Role}: {_message.PrintContent()}");
+                if (textToSpeech)
+                {
+                    Debug.Log("Attempting to invoke speech req");
+                    //dopeCoderController.speechController.GenerateSpeech(_message.PrintContent());
+                }
+                UpdateChat($"{_message.Role}: {_message.PrintContent()}", _message.Role == Role.User ? MessageColorMode.MessageType.Sender : MessageColorMode.MessageType.Receiver);
             }
-        }        
+        }
     }
 
 
     private async Task<ListResponse<MessageResponse>> RetrieveAssistantResponseAsync()
     {
         var run = await openAI.ThreadsEndpoint.RetrieveRunAsync(threadID, runID);
-        //Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
+        Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
         RunStatus status = run.Status;
         while (status != RunStatus.Completed)
         {
             run = await openAI.ThreadsEndpoint.RetrieveRunAsync(threadID, runID);
             Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
             status = run.Status;
-            await System.Threading.Tasks.Task.Delay(1000);
+            await System.Threading.Tasks.Task.Delay(500);
         }
         var messageList = await openAI.ThreadsEndpoint.ListMessagesAsync(threadID);
         
@@ -263,7 +285,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
         } else
         {
             //chatBehaviour.SubmitChat(chatBehaviour.inputField.text);
-            RetrieveAssistant(chatWindow.inputField.text);
+            RetrieveAssistant(dopeCoderController.uiController.inputField.text);
         }
     }
 
@@ -297,7 +319,13 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
 
 
-    public void UpdateChat(string newText) => chatWindow.UpdateChat(newText);
+    public void UpdateChat(string newText, MessageColorMode.MessageType msgType = MessageColorMode.MessageType.Sender)
+    {
+        dopeCoderController.uiController.UpdateChat(newText, msgType);
+        if (msgType == MessageColorMode.MessageType.Receiver) sphereController.SetMode(SphereController.SphereMode.Talking);
+        if (msgType == MessageColorMode.MessageType.Sender) sphereController.SetMode(SphereController.SphereMode.Listening);
+
+    }
 
 
 
@@ -313,7 +341,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     private bool ParseKeyword()
     {
-        string input = chatWindow.inputField.text;
+        string input = dopeCoderController.uiController.inputField.text;
         foreach (KeywordEvent k in keywordEvents)
         {
             if (input.Contains(k.Keyword, StringComparison.OrdinalIgnoreCase))
@@ -344,7 +372,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     public void InvokeFunction()
     {
-        string _text = chatWindow.inputField.text;
+        string _text = dopeCoderController.uiController.inputField.text;
         string _func = ParseFunctionName(_text);
         if (!string.IsNullOrEmpty(_func))
         {
@@ -355,7 +383,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     public void ViewClassVariables()
     {
-        string _text = chatWindow.inputField.text;
+        string _text = dopeCoderController.uiController.inputField.text;
         string className = ParseClassName(_text, "view variables of ");
         if (!string.IsNullOrEmpty(className))
         {
@@ -370,7 +398,7 @@ public class GPTReflectionAnalysis : MonoBehaviour
 
     public void ViewVariable()
     {
-        string _text = chatWindow.inputField.text;
+        string _text = dopeCoderController.uiController.inputField.text;
         string variableName = ParseVariableName(_text, "view variable ");
         if (!string.IsNullOrEmpty(variableName))
         {
@@ -421,13 +449,4 @@ public class GPTReflectionAnalysis : MonoBehaviour
     }
 
     
-}
-
-
-[System.Serializable]
-public class KeywordEvent
-{
-    public string Keyword;
-    public string Description;
-    public UnityEngine.Events.UnityEvent keywordEvent;
 }
