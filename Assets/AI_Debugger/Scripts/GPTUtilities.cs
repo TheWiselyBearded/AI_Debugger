@@ -8,15 +8,16 @@ using UnityEngine;
 using Newtonsoft.Json;
 using OpenAI;
 using System.Linq;
+using OpenAI.Files;
 
 public class GPTUtilities {
-    public VectorStoreApiClient vectorStoreAPI;
     public OpenAIConfiguration openAIConfiguration;
     private string vectorStoreId = "";
     private HttpClient httpClient;
-
+    private OpenAIClient api;
     public GPTUtilities() {
         httpClient = new HttpClient();
+        api = new OpenAIClient();
     }
 
     public void Init() {
@@ -24,7 +25,6 @@ public class GPTUtilities {
         if (openAIConfiguration == null) {
             Debug.LogError("OpenAIConfiguration asset not found in Resources.");
         }
-        vectorStoreAPI = new VectorStoreApiClient(openAIConfiguration.ApiKey);
     }
 
     public async Task<List<string>> GetAvailableModelsAsync() {
@@ -48,12 +48,12 @@ public class GPTUtilities {
         }
 
         try {
-            var vectorStoresResponse = await vectorStoreAPI.GetVectorStoresAsync();
+            var vectorStoresResponse = await api.VectorStoresEndpoint.ListVectorStoresAsync();
             // Check if the response contains data
-            if (vectorStoresResponse != null && vectorStoresResponse.Data != null) {
+            if (vectorStoresResponse != null && vectorStoresResponse.Items != null) {
                 Debug.Log("Vector Stores:");
                 // Iterate over the list of vector stores
-                foreach (var vectorStore in vectorStoresResponse.Data) {
+                foreach (var vectorStore in vectorStoresResponse.Items) {
                     Debug.Log($"ID: {vectorStore.Id}, Name: {vectorStore.Name}, Created At: {vectorStore.CreatedAt}");
                 }
             } else {
@@ -71,15 +71,15 @@ public class GPTUtilities {
         }
 
         try {
-            var vectorStoreFilesResponse = await vectorStoreAPI.ListVectorStoreFilesAsync(vectorStoreId);
+            var vectorStoreFilesResponse = await api.VectorStoresEndpoint.ListVectorStoreFilesAsync(vectorStoreId);
             // Check if the response contains data
-            if (vectorStoreFilesResponse != null && vectorStoreFilesResponse.Data != null) {
+            if (vectorStoreFilesResponse != null && vectorStoreFilesResponse.Items != null) {
                 Debug.Log("Vector Store Files:");
                 // Iterate over the list of vector store files
-                foreach (var file in vectorStoreFilesResponse.Data) {
+                foreach (var file in vectorStoreFilesResponse.Items) {
                     Debug.Log($"ID: {file.Id}, Created At: {file.CreatedAt}, Vector Store ID: {file.VectorStoreId}");
                 }
-                vectorStoreId = vectorStoreFilesResponse.Data[0].Id;
+                vectorStoreId = vectorStoreFilesResponse.Items[0].Id;
             } else {
                 Debug.Log("No vector store files found.");
             }
@@ -97,11 +97,11 @@ public class GPTUtilities {
 
         try {
             // Step 1: Upload the file and get the file_id
-            var fileId = await vectorStoreAPI.UploadFileAsync(filePath);
+            var fileId = await api.FilesEndpoint.UploadFileAsync(filePath, FilePurpose.FineTune);
             Debug.Log($"File uploaded with ID: {fileId}");
 
             // Step 2: Use the file_id to create the vector store file
-            var createFileResponse = await vectorStoreAPI.CreateVectorStoreFileAsync(vectorStoreId, fileId);
+            var createFileResponse = await api.VectorStoresEndpoint.CreateVectorStoreFileAsync(vectorStoreId, fileId);
             Debug.Log("Vector Store File Created:");
             Debug.Log($"ID: {createFileResponse.Id}, Created At: {createFileResponse.CreatedAt}, Status: {createFileResponse.Status}, Vector Store ID: {createFileResponse.VectorStoreId}");
         } catch (Exception e) {
@@ -112,7 +112,7 @@ public class GPTUtilities {
 
 }
 
-public class VectorStoreApiClient {
+/*public class VectorStoreApiClient {
     private readonly HttpClient _httpClient;
     private string apiKey;
 
@@ -211,9 +211,9 @@ public class VectorStoreApiClient {
             throw new HttpRequestException($"Request failed with status code: {response.StatusCode}, {errorResponse}");
         }
     }
+}*/
 
 
-}
 
 public class OpenAIModelsResponse {
     [JsonProperty("data")]
@@ -231,7 +231,7 @@ public class OpenAIModel {
     public string owned_by;
 }
 
-public class VectorStoreListResponse {
+/*public class VectorStoreListResponse {
     [JsonProperty("object")]
     public string Object { get; set; }
 
@@ -357,4 +357,4 @@ public class CreateFileResponse {
 
     [JsonProperty("filename")]
     public string Filename { get; set; }
-}
+}*/
