@@ -300,7 +300,7 @@ public class GPTInterfacer : MonoBehaviour
 
                 assistantMessageContent.text += deltaResponse.FirstChoice.Delta.ToString(); // populate response text
                 DopeCoderController.Instance.uiController.scrollView.verticalNormalizedPosition = 0f;    // set ui to align with new message
-            }, lifetimeCancellationTokenSource.Token);
+            }, cancellationToken: lifetimeCancellationTokenSource.Token);
             
             conversation.AppendMessage(response.FirstChoice.Message);
 

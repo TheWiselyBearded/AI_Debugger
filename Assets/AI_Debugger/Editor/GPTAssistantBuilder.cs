@@ -10,6 +10,7 @@ using OpenAI.Threads;
 using System.Collections.Generic;
 using System.IO;
 using System.Collections;
+using OpenAI.VectorStores;
 
 [Serializable]
 public class FileReference {
@@ -52,7 +53,9 @@ public class GPTAssistantBuilder : EditorWindow {
 
     private Vector2 assistantFilesScrollPosition; // Scroll position for assistant files list
 
-    private List<VectorStoreData> vectorStores = new List<VectorStoreData>();
+    private IReadOnlyList<VectorStoreResponse> vectorStores = new List<VectorStoreResponse>();
+    private IReadOnlyList<VectorStoreFileResponse> vectorStoreFiles = new List<VectorStoreFileResponse>();
+    private string vectorStoreId;
     private Vector2 vectorStoreScrollPosition; // Scroll position for vector stores list
     private bool showVectorStores = false; // Variable to manage the visibility of the vector stores list
 
@@ -99,7 +102,6 @@ public class GPTAssistantBuilder : EditorWindow {
 
 
     private void OnDisable() {
-        gptUtilities.vectorStoreAPI = null;
         SaveFilesToEditorPrefs();
     }
 
@@ -136,11 +138,11 @@ public class GPTAssistantBuilder : EditorWindow {
             EditorGUILayout.EndScrollView();
 
             // Collapsible section for listing vector stores
-            showVectorStores = EditorGUILayout.Foldout(showVectorStores, "Vector Stores");
+            showVectorStores = EditorGUILayout.Foldout(showVectorStores, "Vector Store Files");
             if (showVectorStores) {
                 vectorStoreScrollPosition = EditorGUILayout.BeginScrollView(vectorStoreScrollPosition, GUILayout.Height(100));
-                foreach (var store in vectorStores) {
-                    EditorGUILayout.LabelField($"ID: {store.Id}, Name: {store.Name}, Created At: {store.CreatedAt}");
+                foreach (var vFile in vectorStoreFiles) {
+                    EditorGUILayout.LabelField($"ID: {vFile.Id}, Created At: {vFile.CreatedAt}, Bytes: {vFile.UsageBytes}");
                 }
                 EditorGUILayout.EndScrollView();
             }
@@ -636,7 +638,7 @@ public class GPTAssistantBuilder : EditorWindow {
         var filesListResponse = await api.AssistantsEndpoint.ListFilesAsync(assistantIdToLoad);
         assistantFiles = filesListResponse.Items.ToList();
         assistantId = assistantIdToLoad;
-
+        
         // Set the assistant description
         assistantLoadedInstruction = assignedAssistant.Instructions;
         // Apply the assistantId to the GPTInterfacer
@@ -653,10 +655,18 @@ public class GPTAssistantBuilder : EditorWindow {
 
     private async Task ListVectorStoresForAssistantAsync() {
         try {
-            var response = await gptUtilities.vectorStoreAPI.GetVectorStoresAsync();
-            vectorStores = response.Data;
+            //var response = await gptUtilities.vectorStoreAPI.GetVectorStoresAsync();
+            var api = new OpenAIClient();
+            var _vectorStores = await api.VectorStoresEndpoint.ListVectorStoresAsync();
+            foreach (var vectorStore in _vectorStores.Items) Debug.Log($"Vector store {vectorStore}");
+            vectorStores = _vectorStores.Items;
+            vectorStoreId = _vectorStores.Items[0].Id;
             if (vectorStores.Any()) {
                 Debug.Log("Vector stores retrieved successfully.");
+                // load vector store files
+                var _vectorStoreFiles = await api.VectorStoresEndpoint.ListVectorStoreFilesAsync(vectorStoreId);
+                vectorStoreFiles = _vectorStoreFiles.Items;
+
             } else {
                 Debug.Log("No vector stores found for the assistant.");
             }
@@ -711,7 +721,7 @@ public class GPTAssistantBuilder : EditorWindow {
             Debug.Log($"Uploading file: {absoluteFilePath}");
 
             var fileData = await api.FilesEndpoint.UploadFileAsync(absoluteFilePath, "assistants");
-            var assistantFile = await api.AssistantsEndpoint.AttachFileAsync(assistantId, new FileResponse(fileData.Id, fileData.Object, fileData.Size, fileData.CreatedUnixTimeSeconds, fileData.FileName, fileData.Purpose, fileData.Status));
+            var assistantFile = await api.VectorStoresEndpoint.CreateVectorStoreFileAsync(vectorStoreId, fileData.Id, new ChunkingStrategy(ChunkingStrategyType.Static));
             Debug.Log($"Attached file {fileData.Id} to assistant {assistantId}");
 
             await Task.Delay(1000); // Delay for 1 second
