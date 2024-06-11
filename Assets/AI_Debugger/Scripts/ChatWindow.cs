@@ -174,7 +174,7 @@ public class ChatWindow : MonoBehaviour
                 if (deltaResponse?.FirstChoice?.Delta == null) { return; }
                 assistantMessageContent.text += deltaResponse.FirstChoice.Delta.ToString();
                 scrollView.verticalNormalizedPosition = 0f;
-            }, lifetimeCancellationTokenSource.Token);
+            }, cancellationToken: lifetimeCancellationTokenSource.Token);
 
             conversation.AppendMessage(response.FirstChoice.Message);
 
