@@ -17,6 +17,7 @@ using OpenAI.Assistants;
 using System.Runtime.InteropServices;
 using Newtonsoft.Json;
 using UnityEngine.TerrainTools;
+using OpenAI.Files;
 
 public class GPTInterfacer : MonoBehaviour
 {
@@ -64,6 +65,8 @@ public class GPTInterfacer : MonoBehaviour
 
     public async Task InitializeAssistantSessionAsync() {
         assistant = await openAI.AssistantsEndpoint.RetrieveAssistantAsync(AssistantID);
+        Debug.Log($"Tools {assistant.ToolResources}");
+        foreach (var tr in assistant.Tools) Debug.Log($"Tool resource {tr.ToString()}");
         gptThreadResponse = await openAI.ThreadsEndpoint.CreateThreadAsync();
 
         //run = await run.WaitForStatusChangeAsync();        
@@ -101,7 +104,7 @@ public class GPTInterfacer : MonoBehaviour
                     //var run = await gptThreadResponse.CreateRunAsync(assistant);
                     //_ = await AwaitAssistantResponseAsync();
                     // Handle character limit and create JSON file
-                    CreateMessageRequest request = await HandleCharacterLimitAndCreateJsonFileAsync(jsonMessage);
+                    OpenAI.Threads.Message request = await HandleCharacterLimitAndCreateJsonFileAsync(jsonMessage);
                     await gptThreadResponse.CreateMessageAsync(request);
                 } else {
                     await gptThreadResponse.CreateMessageAsync(jsonMessage);
@@ -128,7 +131,7 @@ public class GPTInterfacer : MonoBehaviour
         }
     }
 
-    private async Task<CreateMessageRequest> HandleCharacterLimitAndCreateJsonFileAsync(string msg) {
+    private async Task<OpenAI.Threads.Message> HandleCharacterLimitAndCreateJsonFileAsync(string msg) {
         /*if (msg.Length <= GPT4_CHARACTERLIMIT) {
             msg = "{\"type\": \"snapshot\", \"content\":\"" + msg + "\"}";
             return new CreateMessageRequest(msg);
@@ -141,13 +144,14 @@ public class GPTInterfacer : MonoBehaviour
         string tempFilePath = Path.Combine(Application.temporaryCachePath, $"tempFile_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.json");
         await File.WriteAllTextAsync(tempFilePath, msg);
 
-        var fileData = await openAI.FilesEndpoint.UploadFileAsync(tempFilePath, "assistants");
+        //var fileData = await openAI.FilesEndpoint.UploadFileAsync(tempFilePath, "assistants");
+        var fileData = await openAI.FilesEndpoint.UploadFileAsync(new OpenAI.Files.FileUploadRequest(tempFilePath, FilePurpose.Assistants));
         Debug.Log($"Exceeded character count, creating JSON file upload req {fileData.Id}");
 
         //msg = "Okay, based on everything in the JSON file I've given you in this message thread, what are some of the most important classes you've identified? Please explain how everything works.";
         string updateMessage = "{ \"type\": \"update\", \"content\": \"The snapshot text is too long, sharing a JSON file instead.\" }";
         //await gptThreadResponse.CreateMessageAsync(updateMessage);
-        return new CreateMessageRequest(updateMessage, new[] { fileData.Id });
+        return new OpenAI.Threads.Message(updateMessage, attachments: new[] { new Attachment(fileData.Id, Tool.FileSearch) });
     }
 
 
