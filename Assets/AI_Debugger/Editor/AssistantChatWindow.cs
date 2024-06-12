@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
@@ -6,8 +7,9 @@ using UnityEngine;
 public class AssistantChatWindow : EditorWindow {
     private string inputText = "";
     private string outputText = "";
+    private Vector2 scrollPosition;
 
-    private List<ConsoleMessageExporter.LogMessage> logMessages = new List<ConsoleMessageExporter.LogMessage>();
+    private static List<string> chatLog = new List<string>(); // Static to persist within session
 
     [MenuItem("Tools/DopeCoder/Assistant Chat")]
     public static void ShowWindow() {
@@ -28,12 +30,27 @@ public class AssistantChatWindow : EditorWindow {
         inputText = EditorGUILayout.TextField("Input", inputText);
 
         if (GUILayout.Button("Send")) {
-            outputText = ProcessInput(inputText);
+            ProcessInput(inputText);
+            inputText = ""; // Clear input after sending
         }
 
-        EditorGUILayout.LabelField("Output", outputText);
+        GUILayout.Space(10);
 
-        if (GUILayout.Button("Export Console Logs")) {
+        // Scroll view for chat log
+        scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.Height(200));
+        foreach (string message in chatLog) {
+            EditorGUILayout.LabelField(message, EditorStyles.wordWrappedLabel);
+        }
+        EditorGUILayout.EndScrollView();
+
+        GUILayout.Space(10);
+
+        // Add Clear button to clear the chat log
+        if (GUILayout.Button("Clear Chat Log")) {
+            chatLog.Clear();
+        }
+
+        if (GUILayout.Button("Export Logs as JSON")) {
             ExportLogsAsJson();
         }
 
@@ -42,21 +59,28 @@ public class AssistantChatWindow : EditorWindow {
         }
     }
 
-    private string ProcessInput(string input) {
-        // Handle input and generate response
-        return "You said: " + input;
+    private async void ProcessInput(string input) {
+        var chatMessage = new ChatMessage(input);
+        chatLog.Add("You: " + input);
+
+        // Await the simulated API call
+        await chatMessage.SendToApiAsync();
+
+        outputText = chatMessage.Response;
+        chatLog.Add("Assistant: " + outputText);
+
+        // Refresh the window to display the new messages
+        Repaint();
     }
 
     private void HandleLog(string logString, string stackTrace, LogType type) {
-        logMessages.Add(new ConsoleMessageExporter.LogMessage {
-            Message = logString,
-            StackTrace = stackTrace,
-            Type = type.ToString()
-        });
+        string logEntry = $"{type}: {logString}\n{stackTrace}";
+        chatLog.Add(logEntry);
+        Repaint(); // Update GUI to reflect new log entries
     }
 
     private void ExportLogsAsJson() {
-        string json = JsonConvert.SerializeObject(logMessages, Formatting.Indented);
+        string json = JsonConvert.SerializeObject(chatLog, Formatting.Indented);
         string path = EditorUtility.SaveFilePanel("Save Logs as JSON", "", "console_logs.json", "json");
         if (!string.IsNullOrEmpty(path)) {
             System.IO.File.WriteAllText(path, json);
