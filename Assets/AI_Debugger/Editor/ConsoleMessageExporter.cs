@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 
 public class ConsoleMessageExporter : EditorWindow {
-    private List<LogMessage> logMessages = new List<LogMessage>();
+    private List<LogMessageOld> logMessages = new List<LogMessageOld>();
 
     [MenuItem("Tools/DopeCoder/Export Console Messages")]
     public static void ShowWindow() {
@@ -20,7 +20,7 @@ public class ConsoleMessageExporter : EditorWindow {
     }
 
     private void HandleLog(string logString, string stackTrace, LogType type) {
-        logMessages.Add(new LogMessage {
+        logMessages.Add(new LogMessageOld {
             Message = logString,
             StackTrace = stackTrace,
             Type = type.ToString()
@@ -38,7 +38,7 @@ public class ConsoleMessageExporter : EditorWindow {
         }
     }
 
-    public class LogMessage {
+    public class LogMessageOld {
         public string Message { get; set; }
         public string StackTrace { get; set; }
         public string Type { get; set; }
