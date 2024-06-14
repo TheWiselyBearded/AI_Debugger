@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
-using Newtonsoft.Json;
 
 public class AssistantChatWindow : EditorWindow {
     private string inputText = "";
     private Vector2 scrollPosition;
+    private OpenAIChatInterface openAIChatInterface;
 
     private static List<ChatEntry> chatLog = new List<ChatEntry>(); // Static to persist within session
     private Texture2D fileIcon;
@@ -19,9 +20,12 @@ public class AssistantChatWindow : EditorWindow {
         GetWindow<AssistantChatWindow>("Assistant Chat");
     }
 
-    private void OnEnable() {
+    private async void OnEnable() {
         fileIcon = EditorGUIUtility.IconContent("d_TextAsset Icon").image as Texture2D;
         consoleLogListener = new ConsoleLogListener();
+        openAIChatInterface = new OpenAIChatInterface(EditorPrefs.GetString("AssistantId", ""));
+
+        await openAIChatInterface.InitializeSessionAsync();
     }
 
     private void OnDisable() {
@@ -79,15 +83,14 @@ public class AssistantChatWindow : EditorWindow {
     }
 
     private async void ProcessInput(string input) {
-        // Create a ChatMessage instance and add user input to chat log
-        var chatMessage = new ChatMessage(input);
+        if (string.IsNullOrEmpty(input)) return;
+
+        // Add user message to chat log
         chatLog.Add(new ChatEntry { User = "You", Message = input, IsFile = false });
 
-        // Await the simulated API call to get the response
-        await chatMessage.SendToApiAsync();
-
-        // Add the response to the chat log
-        chatLog.Add(new ChatEntry { User = "Assistant", Message = chatMessage.Response, IsFile = false });
+        // Send message to GPT Assistant and get response
+        var response = await openAIChatInterface.SendMessageAsync(input);
+        chatLog.Add(new ChatEntry { User = "Assistant", Message = response, IsFile = false });
 
         // Refresh the window to display new messages
         Repaint();
@@ -101,7 +104,6 @@ public class AssistantChatWindow : EditorWindow {
 
         string tempPath = consoleLogListener.ExportLogsAsJson();
         if (!string.IsNullOrEmpty(tempPath)) {
-            // Add file info to chat log
             chatLog.Add(new ChatEntry { User = "System", Message = "Exported JSON log", IsFile = true, FilePath = tempPath });
             Debug.Log($"Logs exported to: {tempPath}");
         } else {
@@ -109,7 +111,6 @@ public class AssistantChatWindow : EditorWindow {
             Debug.LogWarning("No logs to export.");
         }
 
-        // Refresh the window to display the log entry
         Repaint();
     }
 
