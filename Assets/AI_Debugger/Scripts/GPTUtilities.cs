@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using OpenAI;
 using System.Linq;
 using OpenAI.Files;
+using System.IO;
 
 public class GPTUtilities {
     public OpenAIConfiguration openAIConfiguration;
@@ -107,6 +108,20 @@ public class GPTUtilities {
         } catch (Exception e) {
             Debug.LogError($"Request error: {e.Message}");
         }
+    }
+
+    public static void ConvertCSharpFileToJsonl(string filePath, string outputJsonlPath) {
+        // Read the C# file content
+        string csharpCode = File.ReadAllText(filePath);
+
+        // Create a JSON object
+        var jsonObject = new { content = csharpCode, fileName = Path.GetFileName(filePath) };
+
+        // Serialize to JSONL format
+        string jsonLine = JsonConvert.SerializeObject(jsonObject) + Environment.NewLine;
+
+        // Write to JSONL file
+        File.WriteAllText(outputJsonlPath, jsonLine);
     }
 
 

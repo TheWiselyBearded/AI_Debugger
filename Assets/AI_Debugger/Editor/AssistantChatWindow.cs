@@ -15,6 +15,18 @@ public class AssistantChatWindow : EditorWindow {
     private Texture2D fileIcon;
     private ConsoleLogListener consoleLogListener;
 
+    // Enum for the modes
+    private enum Mode {
+        AssistantMode,
+        ChatMode
+    }
+
+    private Mode currentMode = Mode.AssistantMode;
+
+    // Dropdown for mode selection
+    private string[] modes = { "Assistant Mode", "Chat Mode" };
+    private int selectedModeIndex = 0;
+
     [MenuItem("Tools/DopeCoder/Assistant Chat")]
     public static void ShowWindow() {
         GetWindow<AssistantChatWindow>("Assistant Chat");
@@ -35,6 +47,13 @@ public class AssistantChatWindow : EditorWindow {
     private void OnGUI() {
         GUILayout.BeginVertical();
 
+        // Dropdown for selecting mode
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Mode: ", GUILayout.Width(50));
+        selectedModeIndex = EditorGUILayout.Popup(selectedModeIndex, modes, GUILayout.Width(200));
+        currentMode = (Mode)selectedModeIndex; // Update currentMode based on dropdown selection
+        GUILayout.EndHorizontal();
+
         GUILayout.Label("Assistant Chat", EditorStyles.boldLabel);
         scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.Height(400));
         foreach (var entry in chatLog) {
@@ -46,7 +65,8 @@ public class AssistantChatWindow : EditorWindow {
                     System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(entry.FilePath) { UseShellExecute = true });
                 }
             } else {
-                EditorGUILayout.LabelField(entry.Message, EditorStyles.wordWrappedLabel);
+                // Make the text selectable
+                EditorGUILayout.SelectableLabel(entry.Message, EditorStyles.wordWrappedLabel, GUILayout.Height(EditorGUIUtility.singleLineHeight * entry.Message.Split('\n').Length + 4));
             }
 
             EditorGUILayout.EndHorizontal();
@@ -88,8 +108,16 @@ public class AssistantChatWindow : EditorWindow {
         // Add user message to chat log
         chatLog.Add(new ChatEntry { User = "You", Message = input, IsFile = false });
 
-        // Send message to GPT Assistant and get response
-        var response = await openAIChatInterface.SendMessageAsync(input);
+        // Depending on the current mode, modify how the message is handled
+        string response = "";
+        if (currentMode == Mode.AssistantMode) {
+            string jsonInput = JsonConvert.SerializeObject(new { type = "question", content = input });
+            response = await openAIChatInterface.SendMessageAsync(jsonInput, input);
+        } else if (currentMode == Mode.ChatMode) {
+            response = await openAIChatInterface.SendChatMessage(input);
+        }
+
+        // Add response to chat log
         chatLog.Add(new ChatEntry { User = "Assistant", Message = response, IsFile = false });
 
         // Refresh the window to display new messages
@@ -114,9 +142,9 @@ public class AssistantChatWindow : EditorWindow {
         Repaint();
     }
 
-    private void HandleDragAndDrop(Rect dropArea) {
+    private async void HandleDragAndDrop(Rect dropArea) {
         Event evt = Event.current;
-
+        string response = "";
         switch (evt.type) {
             case EventType.DragUpdated:
             case EventType.DragPerform:
@@ -133,10 +161,11 @@ public class AssistantChatWindow : EditorWindow {
                         if (!string.IsNullOrEmpty(assetPath)) {
                             string tempPath = Path.Combine(Path.GetTempPath(), Path.GetFileName(assetPath));
                             File.Copy(assetPath, tempPath, true);
-
                             chatLog.Add(new ChatEntry { User = "You", Message = "Uploaded a file", IsFile = true, FilePath = tempPath });
+                            response = await openAIChatInterface.SendUploadFile(assetPath);
                         }
                     }
+                    chatLog.Add(new ChatEntry { User = "Assistant", Message = response, IsFile = false });
                     Repaint();
                 }
                 break;
