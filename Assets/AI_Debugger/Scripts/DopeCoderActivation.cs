@@ -33,7 +33,7 @@ public partial class @DopeCoderActivation: IInputActionCollection2, IDisposable
                     ""id"": ""46de2cca-2f46-47f4-bba8-5241ef8ff15c"",
                     ""expectedControlType"": ""Button"",
                     ""processors"": """",
-                    ""interactions"": ""Press"",
+                    ""interactions"": ""Press(behavior=2)"",
                     ""initialStateCheck"": false
                 },
                 {
@@ -42,8 +42,8 @@ public partial class @DopeCoderActivation: IInputActionCollection2, IDisposable
                     ""id"": ""a4e8d211-13b9-46b6-b2f9-0a1cbe2d2a81"",
                     ""expectedControlType"": ""Button"",
                     ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": false
+                    ""interactions"": ""Press(behavior=1)"",
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [

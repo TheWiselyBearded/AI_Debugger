@@ -64,15 +64,23 @@ public class GPTInterfacer : MonoBehaviour
 
 
     public async Task InitializeAssistantSessionAsync() {
-        assistant = await openAI.AssistantsEndpoint.RetrieveAssistantAsync(AssistantID);
-        Debug.Log($"Tools {assistant.ToolResources}");
-        foreach (var tr in assistant.Tools) Debug.Log($"Tool resource {tr.ToString()}");
-        gptThreadResponse = await openAI.ThreadsEndpoint.CreateThreadAsync();
+        // Retrieve the assistant if not already done
+        if (assistant == null || assistant.Id != AssistantID) {
+            assistant = await openAI.AssistantsEndpoint.RetrieveAssistantAsync(AssistantID);
+            Debug.Log($"{assistant} -> {assistant.CreatedAt}");
+        }
 
-        //run = await run.WaitForStatusChangeAsync();        
-        // submit the tool outputs
-        threadID = gptThreadResponse.Id;
-        Debug.Log($"Initialized assistant session: {assistant.Name} with thread ID: {gptThreadResponse.Id}");
+        // Create a new thread if not already created
+        if (gptThreadResponse == null) {
+            gptThreadResponse = await openAI.ThreadsEndpoint.CreateThreadAsync();
+            threadID = gptThreadResponse.Id;
+        }
+
+        // Create a run to initialize run instructions
+        var run = await gptThreadResponse.CreateRunAsync(assistant);
+        Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
+        runID = run.Id;
+        _ = await run.WaitForStatusChangeAsync();
     }
 
     //public async Task<string> SendMessageToAssistantAsync(string message) {
@@ -103,8 +111,8 @@ public class GPTInterfacer : MonoBehaviour
 
                 if (jsonMessage.Length > GPT4_CHARACTERLIMIT) {
                     // Notify about the incoming JSON file
-                    //string updateMessage = "{ \"type\": \"update\", \"content\": \"The snapshot text is too long, sharing a JSON file instead.\" }";
-                    //await gptThreadResponse.CreateMessageAsync(updateMessage);
+                    string updateMessage = "{ \"type\": \"update\", \"content\": \"The snapshot text is too long, sharing a JSON file instead.\" }";
+                    await gptThreadResponse.CreateMessageAsync(updateMessage);
 
                     // Handle character limit and create JSON file
                     OpenAI.Threads.Message request = await HandleCharacterLimitAndCreateJsonFileAsync(jsonMessage);
@@ -125,7 +133,6 @@ public class GPTInterfacer : MonoBehaviour
             if (gptThreadResponse != null) {
                 var run = await gptThreadResponse.CreateRunAsync(assistant);
                 Debug.Log($"[{run.Id}] {run.Status} | {run.CreatedAt}");
-                _ = await AwaitAssistantResponseAsync();
             } else {
                 Debug.LogWarning("gptThreadResponse is null. Unable to create run.");
             }

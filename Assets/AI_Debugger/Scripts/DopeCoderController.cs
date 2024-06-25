@@ -71,8 +71,10 @@ public class DopeCoderController : MonoBehaviour
 
         // Reference to the ReflectionRuntimeController
         if (!Settings.scanOnStart) return;
-        if (gptInterfacer.gptThreadResponse == null) InvokeRepeating(nameof(InvokeActivationOperations), 1f, 1f);
-        else InvokeActivationOperations();        
+        //if (gptInterfacer.gptThreadResponse == null) InvokeRepeating(nameof(InvokeActivationOperations), 1f, 1f);
+        //else InvokeActivationOperations();
+        if (gptInterfacer.gptThreadResponse == null) InvokeActivationOperations();
+        else InvokeActivationOperations();
     }
 
     void OnDeactivation() {
@@ -102,9 +104,19 @@ public class DopeCoderController : MonoBehaviour
 
     }
 
-    public void ToggleDopeCoderInterface() {
+    public void ToggleDopeCoderInterface() {                
         if (!dopeCoderInstance.activeInHierarchy) ActivateInterface();
         else DisableInterface();
+    }
+
+    public void OnMyAction(InputAction.CallbackContext context) {
+        if (context.started)
+            Debug.Log("Action was started");
+        else if (context.performed) {
+            Debug.Log("Action was performed");
+            ToggleDopeCoderInterface();
+        } else if (context.canceled)
+            Debug.Log("Action was cancelled");
     }
 
     public void InvokeActivationOperations() {
@@ -115,6 +127,7 @@ public class DopeCoderController : MonoBehaviour
         //string jsonSnapshot = reflectionController.GetAllVariableValuesAsJson();
         string jsonSnapshot = reflectionController.GetAllClassInfoAsJson();
         //Debug.Log($"Example json {jsonSnapshot}");
+        Debug.Log("InvokeActivationOperarions()");
         gptInterfacer.SendRuntimeScanAssistantAsync(jsonSnapshot, true);    // Send the snapshot to GPT Assistant
 
         CancelInvoke(nameof(InvokeActivationOperations));

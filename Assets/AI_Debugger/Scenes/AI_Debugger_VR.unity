@@ -2369,8 +2369,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 600186464452012585}
         m_TargetAssemblyTypeName: DopeCoderController, Assembly-CSharp
-        m_MethodName: ToggleDopeCoderInterface
-        m_Mode: 1
+        m_MethodName: OnMyAction
+        m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -2385,8 +2385,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 600186464452012585}
         m_TargetAssemblyTypeName: DopeCoderController, Assembly-CSharp
-        m_MethodName: ToggleDopeCoderInterface
-        m_Mode: 1
+        m_MethodName: OnMyAction
+        m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
