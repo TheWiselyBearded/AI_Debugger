@@ -142,7 +142,7 @@ public class AssistantChatWindow : EditorWindow {
         Repaint();
     }
 
-    private async void HandleDragAndDrop(Rect dropArea) {
+    private async void HandleDragAndDrop(Rect dropArea) {        
         Event evt = Event.current;
         string response = "";
         switch (evt.type) {
@@ -155,17 +155,18 @@ public class AssistantChatWindow : EditorWindow {
 
                 if (evt.type == EventType.DragPerform) {
                     DragAndDrop.AcceptDrag();
-
-                    foreach (var draggedObject in DragAndDrop.objectReferences) {
-                        string assetPath = AssetDatabase.GetAssetPath(draggedObject);
-                        if (!string.IsNullOrEmpty(assetPath)) {
-                            string tempPath = Path.Combine(Path.GetTempPath(), Path.GetFileName(assetPath));
-                            File.Copy(assetPath, tempPath, true);
-                            chatLog.Add(new ChatEntry { User = "You", Message = "Uploaded a file", IsFile = true, FilePath = tempPath });
-                            response = await openAIChatInterface.SendUploadFile(assetPath);
+                    if (currentMode == Mode.AssistantMode) {
+                        foreach (var draggedObject in DragAndDrop.objectReferences) {
+                            string assetPath = AssetDatabase.GetAssetPath(draggedObject);
+                            if (!string.IsNullOrEmpty(assetPath)) {
+                                string tempPath = Path.Combine(Path.GetTempPath(), Path.GetFileName(assetPath));
+                                File.Copy(assetPath, tempPath, true);
+                                chatLog.Add(new ChatEntry { User = "You", Message = "Uploaded a file", IsFile = true, FilePath = tempPath });
+                                response = await openAIChatInterface.SendUploadFile(assetPath);
+                            }
                         }
+                        chatLog.Add(new ChatEntry { User = "Assistant", Message = response, IsFile = false });
                     }
-                    chatLog.Add(new ChatEntry { User = "Assistant", Message = response, IsFile = false });
                     Repaint();
                 }
                 break;

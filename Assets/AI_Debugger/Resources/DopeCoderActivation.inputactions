@@ -1,0 +1,65 @@
+{
+    "name": "DopeCoderActivation",
+    "maps": [
+        {
+            "name": "dopeCoderActionMap",
+            "id": "6345768e-0abd-4cdd-90f1-6cb0d4592097",
+            "actions": [
+                {
+                    "name": "activateVR",
+                    "type": "Button",
+                    "id": "46de2cca-2f46-47f4-bba8-5241ef8ff15c",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "Press",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "activatePC",
+                    "type": "Button",
+                    "id": "a4e8d211-13b9-46b6-b2f9-0a1cbe2d2a81",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "4e02f73b-01e0-4a3a-8c87-c2927b86acde",
+                    "path": "<XRController>{RightHand}/{PrimaryButton}",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "activateVR",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "3149c772-610f-4840-8ebd-fc8a6270c25d",
+                    "path": "<XRController>{LeftHand}/{PrimaryButton}",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "activateVR",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "efec0c26-055e-428d-bd03-dc1e1c190606",
+                    "path": "<Keyboard>/tab",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "activatePC",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

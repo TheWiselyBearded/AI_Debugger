@@ -13,6 +13,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
 using Utilities.WebRequestRest;
+using UnityEngine.InputSystem;
 
 public class DopeCoderController : MonoBehaviour
 {
@@ -24,20 +25,20 @@ public class DopeCoderController : MonoBehaviour
     //[TextArea(3, 10)]
     //private string systemPrompt = "You are a helpful AI debugging assistant that helps me interface and understand my code with the Reflection library.\n- If an image is requested then use \"![Image](output.jpg)\" to display it.";
 
-    public KeywordEventManager KeywordEventManager;
-    public SphereController sphereController;
+    private GameObject dopeCoderInstance;
+    public Vector3 interfaceOffset = new Vector3(0.5f, 0, 2f);
     public ReflectionRuntimeController reflectionController;
-    public UI_Controller uiController;
-    public GPTInterfacer gptInterfacer;
+    [HideInInspector] public KeywordEventManager KeywordEventManager;
+    [HideInInspector] public SphereController sphereController;
+    [HideInInspector] public UI_Controller uiController;
+    [HideInInspector] public GPTInterfacer gptInterfacer;
     [Header("Speech Controller Properties")]
     public AudioSource speechControllerAudio;
     public GameObject speechControllerAudioPanel;
     public SpeechController speechController;
     private static bool isChatPending;
 
-    [SerializeField]
-    public bool scanOnStart;
-    
+
 
     private void Awake()
     {
@@ -48,31 +49,62 @@ public class DopeCoderController : MonoBehaviour
         }
 
         Instance = this;
-
-        uiController = GetComponentInChildren<UI_Controller>();
-        speechController = new SpeechController(speechControllerAudio, speechControllerAudioPanel);               
+        AssignReferences();
     }
 
-    private void Start()
-    {
+    private void AssignReferences() {
+        dopeCoderInstance = transform.GetChild(0).gameObject;
+        uiController = GetComponent<UI_Controller>();
+        speechController = new SpeechController(speechControllerAudio, speechControllerAudioPanel);
+        sphereController = transform.GetChild(0).GetComponentInChildren<SphereController>();        
+    }
+
+    void OnActivation() {
+        AssignReferences();        
+
         gptInterfacer.openAI.EnableDebug = Settings.debugMode;
-        //gptInterfacer.conversation.AppendMessage(new Message(Role.System, systemPrompt));
-        
-        //inputField.onSubmit.AddListener(SubmitChat);
-        //submitButton.onClick.AddListener(SubmitChat);
         uiController.recordButton.onClick.AddListener(speechController.ToggleRecording);
 
         sphereController.SetMode(SphereController.SphereMode.Idle);
         GPTInterfacer.onGPTMessageReceived += UpdateChat;
         SpeechController.onSTT += UpdateChatSTT;
-        //reflectionController.ListAllAssemblies();
-    }
 
-    void OnEnable() {
         // Reference to the ReflectionRuntimeController
-        if (!scanOnStart) return;
+        if (!Settings.scanOnStart) return;
         if (gptInterfacer.gptThreadResponse == null) InvokeRepeating(nameof(InvokeActivationOperations), 1f, 1f);
         else InvokeActivationOperations();        
+    }
+
+    void OnDeactivation() {
+        gptInterfacer.openAI.EnableDebug = Settings.debugMode;
+        uiController.recordButton.onClick.RemoveListener(speechController.ToggleRecording);
+
+        sphereController.SetMode(SphereController.SphereMode.Idle);
+        GPTInterfacer.onGPTMessageReceived -= UpdateChat;
+        SpeechController.onSTT -= UpdateChatSTT;
+    }
+
+    public void ActivateInterface() {
+        dopeCoderInstance.SetActive(true);
+        OnActivation();
+        // position in front of user.
+        Transform vrCamera = Camera.main.transform;
+        // Calculate the new position
+        Vector3 newPosition = vrCamera.position + vrCamera.forward * interfaceOffset.z + vrCamera.right * interfaceOffset.x + vrCamera.up * interfaceOffset.y;
+        dopeCoderInstance.transform.position = newPosition;
+        // align the object's rotation with the camera's rotation (yaw only)
+        Vector3 forward = new Vector3(vrCamera.forward.x, 0, vrCamera.forward.z).normalized;
+        dopeCoderInstance.transform.rotation = Quaternion.LookRotation(forward);
+    }
+
+    public void DisableInterface() {
+        dopeCoderInstance.SetActive(false);
+
+    }
+
+    public void ToggleDopeCoderInterface() {
+        if (!dopeCoderInstance.activeInHierarchy) ActivateInterface();
+        else DisableInterface();
     }
 
     public void InvokeActivationOperations() {
@@ -94,7 +126,7 @@ public class DopeCoderController : MonoBehaviour
         speechController.EnableAudioInterface(toggle);
     }
 
-    public void ToggleScanOnStart(bool toggle) => scanOnStart = toggle;        
+    public void ToggleScanOnStart(bool toggle) => Settings.scanOnStart = toggle;        
     
 
     public void UpdateChat(string newText, MessageColorMode.MessageType msgType = MessageColorMode.MessageType.Sender)
@@ -201,4 +233,5 @@ public class DopeCoderSettings
     public bool debugMode;
     public bool tts;
     public bool saveLogs;
+    public bool scanOnStart;
 }

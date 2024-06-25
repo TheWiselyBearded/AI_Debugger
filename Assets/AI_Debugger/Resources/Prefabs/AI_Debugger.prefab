@@ -195,8 +195,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 3619997792534018346}
   m_HandleRect: {fileID: 3879273279973906035}
   m_Direction: 0
-  m_Value: 1
-  m_Size: 0.99999994
+  m_Value: 0
+  m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -730,11 +730,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7767c18b612d2415ea119a683774af01, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  chatWindow: {fileID: 3783717610639891179}
+  dopeCoderController: {fileID: 0}
   componentController: {fileID: 7393420060224428159}
   AssistantID: asst_VoiPfdUxshtiYwJVlTzDfJTu
   AssistantIDGPT3: 
   AssistantIDGPT4: 
+  textToSpeech: 0
+  sphereController: {fileID: 0}
   keywordEvents:
   - Keyword: Invoke function
     Description: call a specific function
@@ -817,11 +819,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ScanCollidersOnly: 0
+  fullCodeScan: 0
   detectionRadius: 5
   detectionLayer:
     serializedVersion: 2
     m_Bits: 4294967295
   customObject: {fileID: 0}
+  includedNamespaces: []
+  excludedNamespaces: []
+  includedAssemblies: []
+  excludedAssemblies: []
 --- !u!114 &3783717610639891179
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -834,6 +841,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2f2b7f64c22a94a49a148e5addd319cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  pfb_chatMsgUI: {fileID: 0}
   audioPanel: {fileID: 5401119251701387994}
   enableDebug: 0
   submitButton: {fileID: 2312024671040765039}
@@ -3889,8 +3897,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 850.1654, y: 0}
-  m_SizeDelta: {x: 0, y: 64}
+  m_AnchoredPosition: {x: 812.2574, y: 0}
+  m_SizeDelta: {x: 64, y: 64}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1837193565449018658
 CanvasRenderer:
@@ -4998,8 +5006,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 756.9753, y: 0}
-  m_SizeDelta: {x: 0, y: 64}
+  m_AnchoredPosition: {x: 729.89813, y: 0}
+  m_SizeDelta: {x: 64, y: 64}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6410105301908471148
 CanvasRenderer:

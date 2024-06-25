@@ -44,7 +44,7 @@ public class SphereController : MonoBehaviour
     private void AudioManager_onFinishedTalking() => SetMode(SphereMode.Idle);
     
 
-    void Start()
+    void OnEnable()
     {
         rend = GetComponent<Renderer>();
         initialScale = transform.localScale;
